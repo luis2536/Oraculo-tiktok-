@@ -20,7 +20,10 @@ import java.util.Locale
 data class QueueItem(val id: String, val name: String)
 data class Contributor(val id: String, val name: String, val score: Int)
 
-class OracleViewModel : ViewModel() {
+class OracleViewModel(
+    private val preferencesManager: PreferencesManager,
+    private val geminiService: GeminiService
+) : ViewModel() {
     private var socket: Socket? = null
     private var tts: TextToSpeech? = null
 
@@ -45,8 +48,80 @@ class OracleViewModel : ViewModel() {
     private val _isOracleTalking = MutableStateFlow(false)
     val isOracleTalking: StateFlow<Boolean> = _isOracleTalking.asStateFlow()
 
+    private val _geminiApiKey = MutableStateFlow("")
+    val geminiApiKey: StateFlow<String> = _geminiApiKey.asStateFlow()
+    
+    private val _ttsPitch = MutableStateFlow(1.0f)
+    val ttsPitch: StateFlow<Float> = _ttsPitch.asStateFlow()
+    
+    private val _ttsSpeed = MutableStateFlow(0.85f)
+    val ttsSpeed: StateFlow<Float> = _ttsSpeed.asStateFlow()
+    
+    private val _history = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val history: StateFlow<List<Pair<String, String>>> = _history.asStateFlow()
+
+    private val _useGeminiLocal = MutableStateFlow(false)
+    val useGeminiLocal: StateFlow<Boolean> = _useGeminiLocal.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            launch {
+                preferencesManager.serverUrlFlow.collect { url ->
+                    _serverUrl.value = url
+                }
+            }
+            launch {
+                preferencesManager.geminiApiKeyFlow.collect { key ->
+                    _geminiApiKey.value = key
+                }
+            }
+            launch {
+                preferencesManager.ttsPitchFlow.collect { pitch ->
+                    _ttsPitch.value = pitch
+                    tts?.setPitch(pitch)
+                }
+            }
+            launch {
+                preferencesManager.ttsSpeedFlow.collect { speed ->
+                    _ttsSpeed.value = speed
+                    tts?.setSpeechRate(speed)
+                }
+            }
+        }
+    }
+
     fun updateServerUrl(url: String) {
         _serverUrl.value = url
+        viewModelScope.launch {
+            preferencesManager.saveServerUrl(url)
+        }
+    }
+    
+    fun updateGeminiApiKey(key: String) {
+        _geminiApiKey.value = key
+        viewModelScope.launch {
+            preferencesManager.saveGeminiApiKey(key)
+        }
+    }
+    
+    fun updateTtsPitch(pitch: Float) {
+        _ttsPitch.value = pitch
+        tts?.setPitch(pitch)
+        viewModelScope.launch {
+            preferencesManager.saveTtsPitch(pitch)
+        }
+    }
+    
+    fun updateTtsSpeed(speed: Float) {
+        _ttsSpeed.value = speed
+        tts?.setSpeechRate(speed)
+        viewModelScope.launch {
+            preferencesManager.saveTtsSpeed(speed)
+        }
+    }
+
+    fun toggleGeminiLocal(useLocal: Boolean) {
+        _useGeminiLocal.value = useLocal
     }
 
     fun initTts(context: Context) {
@@ -55,7 +130,8 @@ class OracleViewModel : ViewModel() {
             if (status == TextToSpeech.SUCCESS) {
                 val locale = Locale("es", "ES")
                 tts?.language = locale
-                tts?.setSpeechRate(0.85f) // Paused/slower tone
+                tts?.setSpeechRate(_ttsSpeed.value)
+                tts?.setPitch(_ttsPitch.value)
             }
         }
     }
@@ -115,16 +191,26 @@ class OracleViewModel : ViewModel() {
                 if (args.isNotEmpty()) {
                     val data = args[0] as JSONObject
                     val name = data.optString("name", "Usuario")
-                    val response = data.optString("response", "")
+                    val isQuestion = data.has("question")
+                    val input = if (isQuestion) data.optString("question", "") else data.optString("response", "")
                     
                     viewModelScope.launch {
-                        _currentResponse.value = Pair(name, response)
+                        val response = if (isQuestion || _useGeminiLocal.value) {
+                            geminiService.generateResponse("El usuario $name pregunta: $input", _geminiApiKey.value)
+                        } else {
+                            input
+                        }
+                        
+                        val newEntry = Pair(name, response)
+                        _currentResponse.value = newEntry
+                        _history.update { listOf(newEntry) + it.take(49) } // Keep last 50
+                        
                         _isOracleTalking.value = true
                         speakText(response)
                         
                         // Keep talking animation while speech is likely playing
                         // This is a naive timeout since TTS doesn't give a perfect onDone event easily without a listener
-                        delay((response.length * 70).toLong().coerceAtLeast(3000L))
+                        delay((response.length * (80f / _ttsSpeed.value)).toLong().coerceAtLeast(3000L))
                         _isOracleTalking.value = false
                     }
                 }
@@ -134,6 +220,21 @@ class OracleViewModel : ViewModel() {
         } catch (e: Exception) {
             _isConnecting.value = false
             Log.e("Oracle", "Connection error", e)
+        }
+    }
+    
+    fun manualAsk(question: String, name: String = "Admin") {
+        viewModelScope.launch {
+            val response = geminiService.generateResponse("El usuario $name pregunta: $question", _geminiApiKey.value)
+            val newEntry = Pair(name, response)
+            _currentResponse.value = newEntry
+            _history.update { listOf(newEntry) + it.take(49) }
+            
+            _isOracleTalking.value = true
+            speakText(response)
+            
+            delay((response.length * (80f / _ttsSpeed.value)).toLong().coerceAtLeast(3000L))
+            _isOracleTalking.value = false
         }
     }
 

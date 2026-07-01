@@ -26,16 +26,32 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.components.ParticleBackground
+import com.example.ui.components.ConfigDialog
+import com.example.ui.components.ManualAskDialog
+import androidx.compose.ui.draw.blur
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Add
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val prefs = PreferencesManager(this)
+        val geminiService = GeminiService()
+        val factory = viewModelFactory {
+            initializer {
+                OracleViewModel(prefs, geminiService)
+            }
+        }
         setContent {
             MyApplicationTheme {
-                val viewModel: OracleViewModel = viewModel()
+                val viewModel: OracleViewModel = viewModel(factory = factory)
                 LaunchedEffect(Unit) {
                     viewModel.initTts(this@MainActivity)
                 }
@@ -56,72 +72,63 @@ fun OracleApp(viewModel: OracleViewModel) {
     val contributors by viewModel.contributors.collectAsState()
     val currentResponse by viewModel.currentResponse.collectAsState()
     val isOracleTalking by viewModel.isOracleTalking.collectAsState()
+    val useGeminiLocal by viewModel.useGeminiLocal.collectAsState()
+    val history by viewModel.history.collectAsState()
     
     var showConfig by remember { mutableStateOf(false) }
+    var showManualAsk by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
     
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier
-                        .size(12.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(if (isConnected) Color.Green else Color.Red))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (isConnected) "Conectado" else if (isConnecting) "Conectando..." else "Desconectado", color = Color.White)
-                }
-                
-                IconButton(onClick = { showConfig = true }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = Color.White)
-                }
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Animated Particle Background
+            ParticleBackground()
             
-            if (showConfig) {
-                Card(
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                // Header
+                Row(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        OutlinedTextField(
-                            value = serverUrl,
-                            onValueChange = { viewModel.updateServerUrl(it) },
-                            label = { Text("Server URL (http://IP:PORT)", color = Color.White) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { showConfig = false }) { Text("Cerrar") }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Button(onClick = { 
-                                viewModel.connect()
-                                showConfig = false
-                            }) {
-                                Text("Conectar")
-                            }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(if (isConnected) Color.Green else Color.Red))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (isConnected) "Conectado" else if (isConnecting) "Conectando..." else "Desconectado", color = Color.White)
+                    }
+                    
+                    Row {
+                        IconButton(onClick = { showHistory = !showHistory }) {
+                            Icon(Icons.Default.List, contentDescription = "Historial", tint = Color.White)
+                        }
+                        IconButton(onClick = { showManualAsk = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Preguntar", tint = Color.White)
+                        }
+                        IconButton(onClick = { showConfig = true }) {
+                            Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = Color.White)
                         }
                     }
                 }
-            }
+                
+                if (showConfig) {
+                    ConfigDialog(viewModel, onDismiss = { showConfig = false })
+                }
+                
+                if (showManualAsk) {
+                    ManualAskDialog(viewModel, onDismiss = { showManualAsk = false })
+                }
             
             // Main layout
             Column(modifier = Modifier
@@ -163,19 +170,45 @@ fun OracleApp(viewModel: OracleViewModel) {
                     )
                 }
 
-                // Panels (Queue & Ranking - Bottom half)
+                // Panels (Queue, History & Ranking - Bottom half)
                 Row(modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()) {
-                    // Left Panel (Queue)
-                    Column(modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp)) {
-                        Text("TURNOS", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LazyColumn {
-                            itemsIndexed(queue) { index, item ->
-                                Text("${index + 1}. ${item.name}", color = Color.White, modifier = Modifier.padding(vertical = 4.dp))
+                    
+                    if (showHistory) {
+                        // History Panel
+                        Column(modifier = Modifier
+                            .weight(1f)
+                            .padding(8.dp)) {
+                            Text("HISTORIAL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LazyColumn {
+                                itemsIndexed(history) { index, item ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Text(item.first, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold)
+                                            Text(item.second, color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Left Panel (Queue)
+                        Column(modifier = Modifier
+                            .weight(1f)
+                            .padding(8.dp)) {
+                            Text("TURNOS", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LazyColumn {
+                                itemsIndexed(queue) { index, item ->
+                                    Text("${index + 1}. ${item.name}", color = Color.White, modifier = Modifier.padding(vertical = 4.dp))
+                                }
                             }
                         }
                     }
@@ -250,4 +283,5 @@ fun OracleApp(viewModel: OracleViewModel) {
             }
         }
     }
+}
 }
