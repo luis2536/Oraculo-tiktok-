@@ -43,6 +43,8 @@ import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.components.ParticleBackground
 import com.example.ui.components.ConfigDialog
 import com.example.ui.components.ManualAskDialog
+import com.example.ui.components.HolographicRings
+import com.example.ui.components.AudioWaveform
 import androidx.compose.ui.draw.blur
 
 class MainActivity : ComponentActivity() {
@@ -210,16 +212,25 @@ fun OracleApp(viewModel: OracleViewModel) {
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha), CircleShape)
                     )
                     
+                    // Holographic cyber rings and validation scanners (with rotation & scanning animation)
+                    HolographicRings(
+                        isOracleTalking = isOracleTalking,
+                        scale = scale,
+                        modifier = Modifier
+                            .fillMaxHeight(1.15f)
+                            .aspectRatio(1f)
+                    )
+                    
                     Image(
                         painter = painterResource(R.drawable.img_oracle_character),
                         contentDescription = "Oracle",
                         modifier = Modifier
-                            .fillMaxHeight(0.85f)
+                            .fillMaxHeight(0.72f)
                             .aspectRatio(1f)
                             .offset(y = offsetY.dp)
                             .scale(scale)
                             .clip(CircleShape)
-                            .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
+                            .border(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -344,7 +355,15 @@ fun OracleApp(viewModel: OracleViewModel) {
                             letterSpacing = 2.sp,
                             textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Dynamic audio / voice wave visualizer
+                        AudioWaveform(
+                            isPlaying = isOracleTalking,
+                            modifier = Modifier.height(28.dp)
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
+                        
                         Text(
                             text = "\"${currentResponse!!.second}\"",
                             color = Color.White,
@@ -354,7 +373,15 @@ fun OracleApp(viewModel: OracleViewModel) {
                             lineHeight = 24.sp
                         )
                     } else {
-                        Text("Sincronizando con la red neuronal...", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            // Low-intensity idle signal waveform
+                            AudioWaveform(
+                                isPlaying = false,
+                                modifier = Modifier.height(20.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Sincronizando con la red neuronal...", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                        }
                     }
                 }
             }
