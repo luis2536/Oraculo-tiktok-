@@ -69,6 +69,13 @@ class OracleViewModel(
     private val _useGeminiLocal = MutableStateFlow(false)
     val useGeminiLocal: StateFlow<Boolean> = _useGeminiLocal.asStateFlow()
 
+    private val _errorFlow = MutableStateFlow<String?>(null)
+    val errorFlow: StateFlow<String?> = _errorFlow.asStateFlow()
+
+    fun clearError() {
+        _errorFlow.value = null
+    }
+
     init {
         viewModelScope.launch {
             launch {
@@ -158,7 +165,7 @@ class OracleViewModel(
         if (tts != null) return
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                val locale = Locale("es", "ES")
+                val locale = Locale.Builder().setLanguage("es").setRegion("ES").build()
                 tts?.language = locale
                 tts?.setSpeechRate(_ttsSpeed.value)
                 tts?.setPitch(_ttsPitch.value)
@@ -186,8 +193,10 @@ class OracleViewModel(
                 _isConnecting.value = false
             }
             
-            socket?.on(Socket.EVENT_CONNECT_ERROR) {
+            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
                 _isConnecting.value = false
+                val errorMsg = args.firstOrNull()?.toString() ?: "Error desconocido"
+                _errorFlow.value = "Error de conexión Socket.IO: $errorMsg"
             }
 
             socket?.on("queue_update") { args ->
@@ -226,23 +235,26 @@ class OracleViewModel(
                     val input = if (isQuestion) data.optString("question", "") else data.optString("response", "")
                     
                     viewModelScope.launch {
-                        val response = if (isQuestion || _useGeminiLocal.value) {
-                            geminiService.generateResponse("El usuario $name pregunta: $input", _geminiApiKey.value, _systemPrompt.value)
-                        } else {
-                            input
+                        try {
+                            val response = if (isQuestion || _useGeminiLocal.value) {
+                                geminiService.generateResponse("El usuario $name pregunta: $input", _geminiApiKey.value, _systemPrompt.value)
+                            } else {
+                                input
+                            }
+                            
+                            val newEntry = Pair(name, response)
+                            _currentResponse.value = newEntry
+                            _history.update { listOf(newEntry) + it.take(49) } // Keep last 50
+                            
+                            _isOracleTalking.value = true
+                            speakText(response)
+                            
+                            delay((response.length * (80f / _ttsSpeed.value)).toLong().coerceAtLeast(3000L))
+                            _isOracleTalking.value = false
+                        } catch (e: Exception) {
+                            _errorFlow.value = "Error IA: ${e.message}"
+                            _isOracleTalking.value = false
                         }
-                        
-                        val newEntry = Pair(name, response)
-                        _currentResponse.value = newEntry
-                        _history.update { listOf(newEntry) + it.take(49) } // Keep last 50
-                        
-                        _isOracleTalking.value = true
-                        speakText(response)
-                        
-                        // Keep talking animation while speech is likely playing
-                        // This is a naive timeout since TTS doesn't give a perfect onDone event easily without a listener
-                        delay((response.length * (80f / _ttsSpeed.value)).toLong().coerceAtLeast(3000L))
-                        _isOracleTalking.value = false
                     }
                 }
             }
@@ -250,22 +262,28 @@ class OracleViewModel(
             socket?.connect()
         } catch (e: Exception) {
             _isConnecting.value = false
+            _errorFlow.value = "Error: ${e.message}"
             Log.e("Oracle", "Connection error", e)
         }
     }
     
     fun manualAsk(question: String, name: String = "Admin") {
         viewModelScope.launch {
-            val response = geminiService.generateResponse("El usuario $name pregunta: $question", _geminiApiKey.value, _systemPrompt.value)
-            val newEntry = Pair(name, response)
-            _currentResponse.value = newEntry
-            _history.update { listOf(newEntry) + it.take(49) }
-            
-            _isOracleTalking.value = true
-            speakText(response)
-            
-            delay((response.length * (80f / _ttsSpeed.value)).toLong().coerceAtLeast(3000L))
-            _isOracleTalking.value = false
+            try {
+                val response = geminiService.generateResponse("El usuario $name pregunta: $question", _geminiApiKey.value, _systemPrompt.value)
+                val newEntry = Pair(name, response)
+                _currentResponse.value = newEntry
+                _history.update { listOf(newEntry) + it.take(49) }
+                
+                _isOracleTalking.value = true
+                speakText(response)
+                
+                delay((response.length * (80f / _ttsSpeed.value)).toLong().coerceAtLeast(3000L))
+                _isOracleTalking.value = false
+            } catch (e: Exception) {
+                _errorFlow.value = "Error IA: ${e.message}"
+                _isOracleTalking.value = false
+            }
         }
     }
 

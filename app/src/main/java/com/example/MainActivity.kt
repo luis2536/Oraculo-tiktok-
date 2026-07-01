@@ -4,28 +4,37 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.rounded.List
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -35,8 +44,6 @@ import com.example.ui.components.ParticleBackground
 import com.example.ui.components.ConfigDialog
 import com.example.ui.components.ManualAskDialog
 import androidx.compose.ui.draw.blur
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Add
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,50 +81,78 @@ fun OracleApp(viewModel: OracleViewModel) {
     val isOracleTalking by viewModel.isOracleTalking.collectAsState()
     val useGeminiLocal by viewModel.useGeminiLocal.collectAsState()
     val history by viewModel.history.collectAsState()
+    val errorFlow by viewModel.errorFlow.collectAsState()
     
     var showConfig by remember { mutableStateOf(false) }
     var showManualAsk by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
     
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    LaunchedEffect(errorFlow) {
+        errorFlow?.let { errorMsg ->
+            snackbarHostState.showSnackbar(errorMsg, duration = SnackbarDuration.Long)
+            viewModel.clearError()
+        }
+    }
+    
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color.Transparent
+        containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Animated Particle Background
             ParticleBackground()
+            
+            // Subtle overall overlay
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
             
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Header
+                // Header (Glassmorphism style)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White.copy(alpha = 0.05f))
+                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val statusColor = if (isConnected) Color(0xFF00E676) else if (isConnecting) Color(0xFFFFEA00) else Color(0xFFFF1744)
                         Box(modifier = Modifier
-                            .size(12.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(if (isConnected) Color.Green else Color.Red))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (isConnected) "Conectado" else if (isConnecting) "Conectando..." else "Desconectado", color = Color.White)
+                            .size(14.dp)
+                            .shadow(8.dp, CircleShape, ambientColor = statusColor, spotColor = statusColor)
+                            .clip(CircleShape)
+                            .background(statusColor))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (isConnected) "Conectado" else if (isConnecting) "Conectando..." else "Desconectado", 
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.sp
+                        )
                     }
                     
-                    Row {
-                        IconButton(onClick = { showHistory = !showHistory }) {
-                            Icon(Icons.Default.List, contentDescription = "Historial", tint = Color.White)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(
+                            onClick = { showHistory = !showHistory },
+                            modifier = Modifier.background(if (showHistory) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent, CircleShape)
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.List, contentDescription = "Historial", tint = Color.White)
                         }
                         IconButton(onClick = { showManualAsk = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Preguntar", tint = Color.White)
+                            Icon(Icons.Rounded.Add, contentDescription = "Preguntar", tint = Color.White)
                         }
                         IconButton(onClick = { showConfig = true }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = Color.White)
+                            Icon(Icons.Rounded.Settings, contentDescription = "Configuración", tint = Color.White)
                         }
                     }
                 }
@@ -133,7 +168,8 @@ fun OracleApp(viewModel: OracleViewModel) {
             // Main layout
             Column(modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()) {
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)) {
                 
                 // Center (Oracle - Top half)
                 Box(modifier = Modifier
@@ -142,30 +178,48 @@ fun OracleApp(viewModel: OracleViewModel) {
                     val infiniteTransition = rememberInfiniteTransition(label = "oracle")
                     val scale by infiniteTransition.animateFloat(
                         initialValue = 1f,
-                        targetValue = if (isOracleTalking) 1.15f else 1.03f,
+                        targetValue = if (isOracleTalking) 1.2f else 1.05f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(if (isOracleTalking) 300 else 2000, easing = LinearEasing),
+                            animation = tween(if (isOracleTalking) 400 else 3000, easing = LinearEasing),
                             repeatMode = RepeatMode.Reverse
                         ), label = "scale"
                     )
                     val offsetY by infiniteTransition.animateFloat(
                         initialValue = 0f,
-                        targetValue = if (isOracleTalking) 0f else -15f,
+                        targetValue = if (isOracleTalking) 0f else -10f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(2000, easing = EaseInOut),
+                            animation = tween(2500, easing = EaseInOutSine),
                             repeatMode = RepeatMode.Reverse
                         ), label = "offsetY"
+                    )
+                    val glowAlpha by infiniteTransition.animateFloat(
+                        initialValue = 0.1f,
+                        targetValue = if (isOracleTalking) 0.8f else 0.2f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(if (isOracleTalking) 400 else 2000, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ), label = "glow"
+                    )
+                    
+                    // Glow effect behind the oracle
+                    Box(modifier = Modifier
+                        .fillMaxHeight(0.9f)
+                        .aspectRatio(1f)
+                        .scale(scale * 1.1f)
+                        .blur(32.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha), CircleShape)
                     )
                     
                     Image(
                         painter = painterResource(R.drawable.img_oracle_character),
                         contentDescription = "Oracle",
                         modifier = Modifier
-                            .fillMaxHeight(0.9f)
+                            .fillMaxHeight(0.85f)
                             .aspectRatio(1f)
                             .offset(y = offsetY.dp)
                             .scale(scale)
-                            .clip(RoundedCornerShape(50)),
+                            .clip(CircleShape)
+                            .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -173,69 +227,86 @@ fun OracleApp(viewModel: OracleViewModel) {
                 // Panels (Queue, History & Ranking - Bottom half)
                 Row(modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()) {
+                    .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     
-                    if (showHistory) {
+                    AnimatedVisibility(
+                        visible = showHistory,
+                        modifier = Modifier.weight(1f),
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally()
+                    ) {
                         // History Panel
-                        Column(modifier = Modifier
-                            .weight(1f)
-                            .padding(8.dp)) {
-                            Text("HISTORIAL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Column {
+                            Text("HISTORIAL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            LazyColumn {
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 itemsIndexed(history) { index, item ->
                                     Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Column(modifier = Modifier.padding(8.dp)) {
+                                        Column(modifier = Modifier.padding(12.dp)) {
                                             Text(item.first, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold)
-                                            Text(item.second, color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(item.second, color = Color.White, style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
                                 }
                             }
                         }
-                    } else {
+                    }
+                    
+                    AnimatedVisibility(
+                        visible = !showHistory,
+                        modifier = Modifier.weight(1f),
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally()
+                    ) {
                         // Left Panel (Queue)
-                        Column(modifier = Modifier
-                            .weight(1f)
-                            .padding(8.dp)) {
-                            Text("TURNOS", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Column {
+                            Text("TURNOS", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            LazyColumn {
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 itemsIndexed(queue) { index, item ->
-                                    Text("${index + 1}. ${item.name}", color = Color.White, modifier = Modifier.padding(vertical = 4.dp))
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White.copy(alpha = 0.05f))
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("${index + 1}.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
+                                        Text(item.name, color = Color.White, fontWeight = FontWeight.Medium)
+                                    }
                                 }
                             }
                         }
                     }
                     
                     // Right Panel (Ranking)
-                    Column(modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp)) {
-                        Text("RANKING", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("RANKING", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                         Spacer(modifier = Modifier.height(8.dp))
-                        LazyColumn {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             itemsIndexed(contributors) { index, item ->
-                                Card(
+                                Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.White.copy(alpha = 0.05f))
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .padding(8.dp)
-                                            .fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("${index + 1}. ${item.name}", color = Color.White, maxLines = 1)
-                                        Text(item.score.toString(), color = MaterialTheme.colorScheme.tertiary)
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                        Text("${index + 1}.", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
+                                        Text(item.name, color = Color.White, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
+                                    Text(item.score.toString(), color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Black)
                                 }
                             }
                         }
@@ -247,37 +318,43 @@ fun OracleApp(viewModel: OracleViewModel) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.4f)
                     .padding(16.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                                Color(0xFF1E1E2E).copy(alpha = 0.7f),
+                                Color(0xFF1E1E2E).copy(alpha = 0.95f)
                             )
                         )
-                    ),
+                    )
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp).fillMaxWidth()
+                ) {
                     if (currentResponse != null) {
                         Text(
                             text = currentResponse!!.first.uppercase(),
                             color = MaterialTheme.colorScheme.secondary,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 2.sp,
                             textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = currentResponse!!.second,
+                            text = "\"${currentResponse!!.second}\"",
                             color = Color.White,
                             style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            lineHeight = 24.sp
                         )
                     } else {
-                        Text("Esperando pregunta...", color = Color.Gray)
+                        Text("Sincronizando con la red neuronal...", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                     }
                 }
             }
