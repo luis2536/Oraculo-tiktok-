@@ -45,6 +45,7 @@ import com.example.ui.components.ConfigDialog
 import com.example.ui.components.ManualAskDialog
 import com.example.ui.components.HolographicRings
 import com.example.ui.components.AudioWaveform
+import com.example.ui.components.MysticOracleVisualizer
 import androidx.compose.ui.draw.blur
 
 class MainActivity : ComponentActivity() {
@@ -194,44 +195,14 @@ fun OracleApp(viewModel: OracleViewModel) {
                             repeatMode = RepeatMode.Reverse
                         ), label = "offsetY"
                     )
-                    val glowAlpha by infiniteTransition.animateFloat(
-                        initialValue = 0.1f,
-                        targetValue = if (isOracleTalking) 0.8f else 0.2f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(if (isOracleTalking) 400 else 2000, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ), label = "glow"
-                    )
-                    
-                    // Glow effect behind the oracle
-                    Box(modifier = Modifier
-                        .fillMaxHeight(0.9f)
-                        .aspectRatio(1f)
-                        .scale(scale * 1.1f)
-                        .blur(32.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha), CircleShape)
-                    )
-                    
-                    // Holographic cyber rings and validation scanners (with rotation & scanning animation)
-                    HolographicRings(
+
+                    MysticOracleVisualizer(
                         isOracleTalking = isOracleTalking,
                         scale = scale,
+                        offsetY = offsetY,
                         modifier = Modifier
-                            .fillMaxHeight(1.15f)
-                            .aspectRatio(1f)
-                    )
-                    
-                    Image(
-                        painter = painterResource(R.drawable.img_oracle_character),
-                        contentDescription = "Oracle",
-                        modifier = Modifier
-                            .fillMaxHeight(0.72f)
-                            .aspectRatio(1f)
-                            .offset(y = offsetY.dp)
-                            .scale(scale)
-                            .clip(CircleShape)
-                            .border(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), CircleShape),
-                        contentScale = ContentScale.Crop
+                            .fillMaxHeight()
+                            .aspectRatio(1.2f)
                     )
                 }
 
