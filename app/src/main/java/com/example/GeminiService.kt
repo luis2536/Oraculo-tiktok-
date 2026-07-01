@@ -70,11 +70,13 @@ object GeminiRetrofitClient {
 }
 
 class GeminiService {
-    suspend fun generateResponse(prompt: String, customApiKey: String? = null): String = withContext(Dispatchers.IO) {
+    suspend fun generateResponse(prompt: String, customApiKey: String? = null, systemPrompt: String? = null): String = withContext(Dispatchers.IO) {
         val apiKey = if (!customApiKey.isNullOrEmpty()) customApiKey else BuildConfig.GEMINI_API_KEY
         if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
             return@withContext "Error: Gemini API Key no configurada. Añádela en Configuración."
         }
+
+        val actualSystemPrompt = systemPrompt ?: "Eres un Oráculo místico y cyber-futurista en TikTok Live. Das respuestas breves, misteriosas, impactantes y divertidas. Habla en español, pausado y con tono de deidad o entidad digital avanzada. Tus respuestas no deben superar las 3 oraciones cortas."
 
         val request = GenerateContentRequest(
             contents = listOf(
@@ -83,7 +85,7 @@ class GeminiService {
                 )
             ),
             systemInstruction = Content(
-                parts = listOf(Part(text = "Eres un Oráculo místico y cyber-futurista en TikTok Live. Das respuestas breves, misteriosas, impactantes y divertidas. Habla en español, pausado y con tono de deidad o entidad digital avanzada. Tus respuestas no deben superar las 3 oraciones cortas."))
+                parts = listOf(Part(text = actualSystemPrompt))
             )
         )
         try {

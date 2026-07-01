@@ -19,6 +19,8 @@ class PreferencesManager(private val context: Context) {
         val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
         val TTS_PITCH_KEY = floatPreferencesKey("tts_pitch")
         val TTS_SPEED_KEY = floatPreferencesKey("tts_speed")
+        val SYSTEM_PROMPT_KEY = stringPreferencesKey("system_prompt")
+        val TIKTOK_USER_KEY = stringPreferencesKey("tiktok_user")
     }
 
     val serverUrlFlow: Flow<String> = context.dataStore.data
@@ -39,6 +41,16 @@ class PreferencesManager(private val context: Context) {
     val ttsSpeedFlow: Flow<Float> = context.dataStore.data
         .map { preferences ->
             preferences[TTS_SPEED_KEY] ?: 0.85f
+        }
+
+    val systemPromptFlow: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[SYSTEM_PROMPT_KEY] ?: "Eres un Oráculo místico y cyber-futurista en TikTok Live. Das respuestas breves, misteriosas, impactantes y divertidas. Habla en español, pausado y con tono de deidad o entidad digital avanzada. Tus respuestas no deben superar las 3 oraciones cortas."
+        }
+        
+    val tiktokUserFlow: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[TIKTOK_USER_KEY] ?: "syntropylabs"
         }
 
     suspend fun saveServerUrl(url: String) {
@@ -62,6 +74,18 @@ class PreferencesManager(private val context: Context) {
     suspend fun saveTtsSpeed(speed: Float) {
         context.dataStore.edit { preferences ->
             preferences[TTS_SPEED_KEY] = speed
+        }
+    }
+    
+    suspend fun saveSystemPrompt(prompt: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SYSTEM_PROMPT_KEY] = prompt
+        }
+    }
+    
+    suspend fun saveTiktokUser(user: String) {
+        context.dataStore.edit { preferences ->
+            preferences[TIKTOK_USER_KEY] = user
         }
     }
 }

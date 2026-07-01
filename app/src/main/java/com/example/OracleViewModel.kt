@@ -57,6 +57,12 @@ class OracleViewModel(
     private val _ttsSpeed = MutableStateFlow(0.85f)
     val ttsSpeed: StateFlow<Float> = _ttsSpeed.asStateFlow()
     
+    private val _systemPrompt = MutableStateFlow("Eres un Oráculo místico y cyber-futurista en TikTok Live. Das respuestas breves, misteriosas, impactantes y divertidas. Habla en español, pausado y con tono de deidad o entidad digital avanzada. Tus respuestas no deben superar las 3 oraciones cortas.")
+    val systemPrompt: StateFlow<String> = _systemPrompt.asStateFlow()
+    
+    private val _tiktokUser = MutableStateFlow("syntropylabs")
+    val tiktokUser: StateFlow<String> = _tiktokUser.asStateFlow()
+    
     private val _history = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     val history: StateFlow<List<Pair<String, String>>> = _history.asStateFlow()
 
@@ -87,6 +93,16 @@ class OracleViewModel(
                     tts?.setSpeechRate(speed)
                 }
             }
+            launch {
+                preferencesManager.systemPromptFlow.collect { prompt ->
+                    _systemPrompt.value = prompt
+                }
+            }
+            launch {
+                preferencesManager.tiktokUserFlow.collect { user ->
+                    _tiktokUser.value = user
+                }
+            }
         }
     }
 
@@ -101,6 +117,20 @@ class OracleViewModel(
         _geminiApiKey.value = key
         viewModelScope.launch {
             preferencesManager.saveGeminiApiKey(key)
+        }
+    }
+    
+    fun updateSystemPrompt(prompt: String) {
+        _systemPrompt.value = prompt
+        viewModelScope.launch {
+            preferencesManager.saveSystemPrompt(prompt)
+        }
+    }
+    
+    fun updateTiktokUser(user: String) {
+        _tiktokUser.value = user
+        viewModelScope.launch {
+            preferencesManager.saveTiktokUser(user)
         }
     }
     
@@ -143,6 +173,7 @@ class OracleViewModel(
         try {
             val opts = IO.Options()
             opts.reconnection = true
+            opts.query = "tiktokUser=${_tiktokUser.value}"
             socket = IO.socket(_serverUrl.value, opts)
 
             socket?.on(Socket.EVENT_CONNECT) {
@@ -196,7 +227,7 @@ class OracleViewModel(
                     
                     viewModelScope.launch {
                         val response = if (isQuestion || _useGeminiLocal.value) {
-                            geminiService.generateResponse("El usuario $name pregunta: $input", _geminiApiKey.value)
+                            geminiService.generateResponse("El usuario $name pregunta: $input", _geminiApiKey.value, _systemPrompt.value)
                         } else {
                             input
                         }
@@ -225,7 +256,7 @@ class OracleViewModel(
     
     fun manualAsk(question: String, name: String = "Admin") {
         viewModelScope.launch {
-            val response = geminiService.generateResponse("El usuario $name pregunta: $question", _geminiApiKey.value)
+            val response = geminiService.generateResponse("El usuario $name pregunta: $question", _geminiApiKey.value, _systemPrompt.value)
             val newEntry = Pair(name, response)
             _currentResponse.value = newEntry
             _history.update { listOf(newEntry) + it.take(49) }
