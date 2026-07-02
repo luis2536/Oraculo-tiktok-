@@ -46,6 +46,7 @@ import com.example.ui.components.ManualAskDialog
 import com.example.ui.components.HolographicRings
 import com.example.ui.components.AudioWaveform
 import com.example.ui.components.MysticOracleVisualizer
+import com.example.ui.components.FlyingTarotCardDisplay
 import androidx.compose.ui.draw.blur
 
 class MainActivity : ComponentActivity() {
@@ -85,6 +86,9 @@ fun OracleApp(viewModel: OracleViewModel) {
     val useGeminiLocal by viewModel.useGeminiLocal.collectAsState()
     val history by viewModel.history.collectAsState()
     val errorFlow by viewModel.errorFlow.collectAsState()
+    
+    val currentTarotCard by viewModel.currentTarotCard.collectAsState()
+    val isTarotFlipped by viewModel.isTarotFlipped.collectAsState()
     
     var showConfig by remember { mutableStateOf(false) }
     var showManualAsk by remember { mutableStateOf(false) }
@@ -169,153 +173,153 @@ fun OracleApp(viewModel: OracleViewModel) {
                 }
             
             // Main layout
-            Column(modifier = Modifier
+            // Center (Oracle - Top half with stable size to prevent overlapping and squishing)
+            Box(modifier = Modifier
+                .height(180.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                val infiniteTransition = rememberInfiniteTransition(label = "oracle")
+                val scale by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = if (isOracleTalking) 1.15f else 1.05f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(if (isOracleTalking) 400 else 3000, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ), label = "scale"
+                )
+                val offsetY by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = if (isOracleTalking) 0f else -6f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2500, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ), label = "offsetY"
+                )
+
+                MysticOracleVisualizer(
+                    isOracleTalking = isOracleTalking,
+                    scale = scale,
+                    offsetY = offsetY,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1.2f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Panels (Queue, History & Ranking - Middle half, automatically occupies remaining space)
+            Row(modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)) {
+                .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 
-                // Center (Oracle - Top half)
-                Box(modifier = Modifier
-                    .weight(1.2f)
-                    .fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "oracle")
-                    val scale by infiniteTransition.animateFloat(
-                        initialValue = 1f,
-                        targetValue = if (isOracleTalking) 1.2f else 1.05f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(if (isOracleTalking) 400 else 3000, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ), label = "scale"
-                    )
-                    val offsetY by infiniteTransition.animateFloat(
-                        initialValue = 0f,
-                        targetValue = if (isOracleTalking) 0f else -10f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(2500, easing = EaseInOutSine),
-                            repeatMode = RepeatMode.Reverse
-                        ), label = "offsetY"
-                    )
-
-                    MysticOracleVisualizer(
-                        isOracleTalking = isOracleTalking,
-                        scale = scale,
-                        offsetY = offsetY,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .aspectRatio(1.2f)
-                    )
-                }
-
-                // Panels (Queue, History & Ranking - Bottom half)
-                Row(modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                AnimatedVisibility(
+                    visible = showHistory,
+                    modifier = Modifier.weight(1f),
+                    enter = fadeIn() + expandHorizontally(),
+                    exit = fadeOut() + shrinkHorizontally()
                 ) {
-                    
-                    AnimatedVisibility(
-                        visible = showHistory,
-                        modifier = Modifier.weight(1f),
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
-                    ) {
-                        // History Panel
-                        Column {
-                            Text("HISTORIAL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                itemsIndexed(history) { index, item ->
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Column(modifier = Modifier.padding(12.dp)) {
-                                            Text(item.first, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold)
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(item.second, color = Color.White, style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis)
-                                        }
+                    // History Panel
+                    Column {
+                        Text("HISTORIAL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            itemsIndexed(history) { index, item ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(item.first, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(item.second, color = Color.White, style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
                             }
                         }
                     }
-                    
-                    AnimatedVisibility(
-                        visible = !showHistory,
-                        modifier = Modifier.weight(1f),
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
-                    ) {
-                        // Left Panel (Queue)
-                        Column {
-                            Text("TURNOS", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                itemsIndexed(queue) { index, item ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.05f))
-                                            .padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("${index + 1}.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
-                                        Text(item.name, color = Color.White, fontWeight = FontWeight.Medium)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Right Panel (Ranking)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("RANKING", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            itemsIndexed(contributors) { index, item ->
+                }
+                
+                AnimatedVisibility(
+                    visible = !showHistory,
+                    modifier = Modifier.weight(1f),
+                    enter = fadeIn() + expandHorizontally(),
+                    exit = fadeOut() + shrinkHorizontally()
+                ) {
+                    // Left Panel (Queue)
+                    Column {
+                        Text("TURNOS", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            itemsIndexed(queue) { index, item ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(Color.White.copy(alpha = 0.05f))
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                        .padding(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                        Text("${index + 1}.", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
-                                        Text(item.name, color = Color.White, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    }
-                                    Text(item.score.toString(), color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Black)
+                                    Text("${index + 1}.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.width(20.dp))
+                                    Text(item.name, color = Color.White, fontWeight = FontWeight.Medium)
                                 }
+                            }
+                        }
+                    }
+                }
+                
+                // Right Panel (Ranking)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("RANKING", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        itemsIndexed(contributors) { index, item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(alpha = 0.05f))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Text("${index + 1}.", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, modifier = Modifier.width(20.dp))
+                                    Text(item.name, color = Color.White, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Text(item.score.toString(), color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Black)
                             }
                         }
                     }
                 }
             }
             
-            // Bottom Response
+            Spacer(modifier = Modifier.height(6.dp))
+            
+            // Bottom Response ("Pancarta" layout, beautifully integrated vertically to prevent overlaps)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(24.dp))
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(20.dp))
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF1E1E2E).copy(alpha = 0.7f),
+                                Color(0xFF1E1E2E).copy(alpha = 0.75f),
                                 Color(0xFF1E1E2E).copy(alpha = 0.95f)
                             )
                         )
                     )
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp).fillMaxWidth()
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth()
                 ) {
                     if (currentResponse != null) {
                         Text(
@@ -351,11 +355,32 @@ fun OracleApp(viewModel: OracleViewModel) {
                                 modifier = Modifier.height(20.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Sincronizando con la red neuronal...", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 1.5.dp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "ENLAZANDO CON EL NÚCLEO NEURONAL...",
+                                    color = Color.Gray,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    letterSpacing = 1.sp
+                                )
+                            }
                         }
                     }
                 }
             }
+
+            // 3D Flying Tarot Card Reveal Overlay
+            FlyingTarotCardDisplay(
+                card = currentTarotCard,
+                isFlipped = isTarotFlipped,
+                onDismiss = { viewModel.dismissTarotCard() }
+            )
         }
     }
 }

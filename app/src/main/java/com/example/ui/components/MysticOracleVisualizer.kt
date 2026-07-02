@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -20,6 +21,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
@@ -48,6 +50,16 @@ fun MysticOracleVisualizer(
         ), label = "magicPhase"
     )
 
+    // Breathing effect for the whole oracle (subtle scale pulse)
+    val breathingScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.03f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ), label = "breathing"
+    )
+
     // Speech amplitude for mouth simulation
     val speechAmplitude by if (isOracleTalking) {
         infiniteTransition.animateFloat(
@@ -57,6 +69,20 @@ fun MysticOracleVisualizer(
                 animation = tween(150, easing = EaseInOutBounce),
                 repeatMode = RepeatMode.Reverse
             ), label = "speechAmplitude"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
+    
+    // Subtle head tilt when talking
+    val headTilt by if (isOracleTalking) {
+        infiniteTransition.animateFloat(
+            initialValue = -2f,
+            targetValue = 2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(800, easing = EaseInOutSine),
+                repeatMode = RepeatMode.Reverse
+            ), label = "headTilt"
         )
     } else {
         remember { mutableStateOf(0f) }
@@ -176,7 +202,8 @@ fun MysticOracleVisualizer(
                 .fillMaxHeight(0.72f)
                 .aspectRatio(1f)
                 .offset(y = offsetY.dp)
-                .scale(scale)
+                .rotate(headTilt)
+                .scale(scale * breathingScale)
                 .clip(CircleShape)
                 .border(2.5.dp, primaryColor.copy(alpha = 0.8f), CircleShape),
             contentAlignment = Alignment.Center
@@ -192,38 +219,93 @@ fun MysticOracleVisualizer(
             if (isOracleTalking) {
                 Canvas(
                     modifier = Modifier
-                        .fillMaxWidth(0.28f)
-                        .height(24.dp)
+                        .fillMaxWidth(0.32f)
+                        .height(32.dp)
                         .align(Alignment.BottomCenter)
-                        .offset(y = (-32).dp)
+                        .offset(y = (-28).dp)
                 ) {
                     val w = size.width
                     val h = size.height
-                    val path = Path()
-                    path.moveTo(0f, h / 2)
+
+                    // 1. Draw glowing background sound orbs (simulated 3D voice field)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(secondaryColor.copy(alpha = 0.45f * speechAmplitude), Color.Transparent),
+                            center = Offset(w / 2, h / 2),
+                            radius = (w / 2) * (0.6f + 0.4f * speechAmplitude)
+                        ),
+                        radius = (w / 2) * (0.6f + 0.4f * speechAmplitude),
+                        center = Offset(w / 2, h / 2)
+                    )
+
+                    // 2. Draw rotating cyber-rings around her mouth that contract and expand dynamically
+                    drawCircle(
+                        color = primaryColor.copy(alpha = 0.35f * speechAmplitude),
+                        radius = (14.dp.toPx()) * (0.8f + 0.4f * speechAmplitude),
+                        center = Offset(w / 2, h / 2),
+                        style = Stroke(
+                            width = 1.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
+                        )
+                    )
+
+                    // 3. Draw the active mouth opening (vocal vortex) - a stylized ellipse that scales with speech
+                    val mouthHeight = (8.dp.toPx()) * speechAmplitude
+                    val mouthWidth = (16.dp.toPx()) * (1f + 0.2f * speechAmplitude)
+                    drawOval(
+                        color = Color.White.copy(alpha = 0.95f),
+                        topLeft = Offset(w / 2 - mouthWidth / 2, h / 2 - mouthHeight / 2),
+                        size = Size(mouthWidth, mouthHeight),
+                        style = Stroke(width = 2.dp.toPx())
+                    )
+                    drawOval(
+                        color = secondaryColor.copy(alpha = 0.5f),
+                        topLeft = Offset(w / 2 - mouthWidth / 2 - 2.dp.toPx(), h / 2 - mouthHeight / 2 - 2.dp.toPx()),
+                        size = Size(mouthWidth + 4.dp.toPx(), mouthHeight + 4.dp.toPx()),
+                        style = Stroke(width = 4.dp.toPx())
+                    )
+
+                    // 4. Draw overlapping horizontal vocal spectrum waves (Multi-band depth)
+                    val pathsCount = 3
+                    val colors = listOf(Color.White, secondaryColor.copy(alpha = 0.8f), primaryColor.copy(alpha = 0.5f))
+                    val strokeWidths = listOf(2.2.dp.toPx(), 1.5.dp.toPx(), 1.dp.toPx())
                     
-                    // Draw a glowing sine/cosine speech wave centered
-                    val points = 30
-                    for (i in 0..points) {
-                        val x = (i.toFloat() / points) * w
-                        // Harmonic talking wave calculation
-                        val wave = sin((i * 0.4f) + (magicPhase * 4f)) * cos((i * 0.2f) - (magicPhase * 2f))
-                        val y = (h / 2) + wave * (h * 0.45f) * speechAmplitude
-                        path.lineTo(x, y)
+                    for (pIdx in 0 until pathsCount) {
+                        val path = Path()
+                        path.moveTo(0f, h / 2)
+                        val points = 35
+                        for (i in 0..points) {
+                            val x = (i.toFloat() / points) * w
+                            // Different frequencies and phase offsets per path to create depth
+                            val phaseOffset = pIdx * (Math.PI / 3).toFloat()
+                            val speedMultiplier = 3.5f + pIdx * 1.5f
+                            val wave = sin((i * 0.45f) + (magicPhase * speedMultiplier) + phaseOffset) * 
+                                         cos((i * 0.25f) - (magicPhase * 2f) + phaseOffset)
+                            
+                            // Scale height by speechAmplitude, and taper off near edges (fade window)
+                            val edgeFade = sin((i.toFloat() / points) * Math.PI).toFloat()
+                            val y = (h / 2) + wave * (h * 0.55f) * speechAmplitude * edgeFade
+                            path.lineTo(x, y)
+                        }
+                        drawPath(
+                            path = path,
+                            color = colors[pIdx],
+                            style = Stroke(width = strokeWidths[pIdx])
+                        )
                     }
-                    
-                    drawPath(
-                        path = path,
-                        color = Color.White,
-                        style = Stroke(width = 2.5.dp.toPx())
-                    )
-                    
-                    // Outer glow behind speech path
-                    drawPath(
-                        path = path,
-                        color = secondaryColor.copy(alpha = 0.6f),
-                        style = Stroke(width = 6.dp.toPx())
-                    )
+
+                    // 5. Draw active voice sparks (floating particle emanations flowing outward)
+                    for (i in 0..5) {
+                        val particleAngle = (magicPhase * 3f + i * (2 * Math.PI / 6)).toFloat()
+                        val distance = (12.dp.toPx() + 18.dp.toPx() * speechAmplitude) * (0.5f + 0.5f * sin(magicPhase * 2f + i))
+                        val px = w / 2 + distance * cos(particleAngle)
+                        val py = h / 2 + distance * sin(particleAngle)
+                        drawCircle(
+                            color = tertiaryColor.copy(alpha = 0.75f * speechAmplitude),
+                            radius = 2.dp.toPx() * (1f + 0.4f * sin(magicPhase + i)),
+                            center = Offset(px, py)
+                        )
+                    }
                 }
             }
         }

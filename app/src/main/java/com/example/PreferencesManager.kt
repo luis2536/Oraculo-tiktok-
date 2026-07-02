@@ -40,7 +40,7 @@ class PreferencesManager(private val context: Context) {
         
     val ttsSpeedFlow: Flow<Float> = context.dataStore.data
         .map { preferences ->
-            preferences[TTS_SPEED_KEY] ?: 0.85f
+            preferences[TTS_SPEED_KEY] ?: 1.05f
         }
 
     val systemPromptFlow: Flow<String> = context.dataStore.data

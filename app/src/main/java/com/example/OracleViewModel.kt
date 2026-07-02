@@ -20,12 +20,40 @@ import java.util.Locale
 data class QueueItem(val id: String, val name: String)
 data class Contributor(val id: String, val name: String, val score: Int)
 
+data class TarotCard(
+    val name: String,
+    val meaning: String,
+    val runicSymbolName: String, // "sol", "mago", "muerte", "estrella", "torre", "luna", "fuerza", "diablo", "mundo", "loco"
+    val mainColorHex: String,
+    val secondaryColorHex: String,
+    val description: String
+)
+
 class OracleViewModel(
     private val preferencesManager: PreferencesManager,
     private val geminiService: GeminiService
 ) : ViewModel() {
     private var socket: Socket? = null
     private var tts: TextToSpeech? = null
+
+    val tarotDeck = listOf(
+        TarotCard("El Sol", "Éxito, vitalidad, brillo divino e iluminación", "sol", "#FFD700", "#FF8C00", "La claridad absoluta penetra la niebla cibernética."),
+        TarotCard("La Muerte", "Transmutación radical, cierres, renacer y transición", "muerte", "#9C27B0", "#FF1744", "El fin de un ciclo de datos y el renacimiento de un nuevo núcleo."),
+        TarotCard("El Mago", "Manifestación de voluntad absoluta, poder y recursos", "mago", "#00E5FF", "#00E676", "Canaliza energías cósmicas para moldear la realidad virtual."),
+        TarotCard("La Estrella", "Guía estelar, esperanza, renovación espiritual", "estrella", "#00B0FF", "#E040FB", "Un faro de esperanza brillando en el vasto abismo digital."),
+        TarotCard("La Torre", "Disrupción súbita, colapso de estructuras, revelación", "torre", "#FF3D00", "#FFEA00", "La destrucción inevitable de barreras obsoletas para liberar la verdad."),
+        TarotCard("La Luna", "Intuición profunda, misterio, subconsciente, ilusiones", "luna", "#1A237E", "#00E5FF", "Filtra reflejos engañosos y despierta las percepciones psíquicas."),
+        TarotCard("La Fuerza", "Dominio interno, coraje, paciencia, compasión", "fuerza", "#FF9100", "#D50000", "Domina las bestias de silicio con la pura vibración de tu espíritu."),
+        TarotCard("El Diablo", "Apegos materiales, impulsos inconscientes, tentación", "diablo", "#FF1744", "#212121", "Esclavitud a las ilusiones de la red y el deseo carnal inconsciente."),
+        TarotCard("El Mundo", "Realización total, completitud, integración absoluta", "mundo", "#AA00FF", "#00E676", "Culminación perfecta del viaje a través del macrocosmos virtual."),
+        TarotCard("El Loco", "Nuevos comienzos, saltos de fe, potencial ilimitado", "loco", "#E040FB", "#00E5FF", "Un paso al vacío con confianza ciega en la providencia cuántica.")
+    )
+
+    private val _currentTarotCard = MutableStateFlow<TarotCard?>(null)
+    val currentTarotCard: StateFlow<TarotCard?> = _currentTarotCard.asStateFlow()
+
+    private val _isTarotFlipped = MutableStateFlow(false)
+    val isTarotFlipped: StateFlow<Boolean> = _isTarotFlipped.asStateFlow()
 
     private val _serverUrl = MutableStateFlow("http://192.168.1.26:3000")
     val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
@@ -54,7 +82,7 @@ class OracleViewModel(
     private val _ttsPitch = MutableStateFlow(1.0f)
     val ttsPitch: StateFlow<Float> = _ttsPitch.asStateFlow()
     
-    private val _ttsSpeed = MutableStateFlow(0.85f)
+    private val _ttsSpeed = MutableStateFlow(1.05f)
     val ttsSpeed: StateFlow<Float> = _ttsSpeed.asStateFlow()
     
     private val _systemPrompt = MutableStateFlow("Eres un Oráculo místico y cyber-futurista en TikTok Live. Das respuestas breves, misteriosas, impactantes y divertidas. Habla en español, pausado y con tono de deidad o entidad digital avanzada. Tus respuestas no deben superar las 3 oraciones cortas.")
@@ -236,8 +264,15 @@ class OracleViewModel(
                     
                     viewModelScope.launch {
                         try {
+                            val drawnCard = tarotDeck.random()
+                            _currentTarotCard.value = drawnCard
+                            _isTarotFlipped.value = false
+                            
                             val response = if (isQuestion || _useGeminiLocal.value) {
-                                geminiService.generateResponse("El usuario $name pregunta: $input", _geminiApiKey.value, _systemPrompt.value)
+                                val customPrompt = "El usuario $name pregunta: $input. " +
+                                                 "La carta del Tarot revelada de tu baraja cibernética es '${drawnCard.name}' (Significado místico: ${drawnCard.meaning}. Descripción: ${drawnCard.description}). " +
+                                                 "Como Deidad del Oráculo de Silicio, incorpora directamente el nombre y el simbolismo de esta carta en tu predicción mística cyber-futurista de forma fluida."
+                                geminiService.generateResponse(customPrompt, _geminiApiKey.value, _systemPrompt.value)
                             } else {
                                 input
                             }
@@ -246,6 +281,7 @@ class OracleViewModel(
                             _currentResponse.value = newEntry
                             _history.update { listOf(newEntry) + it.take(49) } // Keep last 50
                             
+                            _isTarotFlipped.value = true // Revelar la carta mística
                             _isOracleTalking.value = true
                             speakText(response)
                             
@@ -270,11 +306,20 @@ class OracleViewModel(
     fun manualAsk(question: String, name: String = "Admin") {
         viewModelScope.launch {
             try {
-                val response = geminiService.generateResponse("El usuario $name pregunta: $question", _geminiApiKey.value, _systemPrompt.value)
+                val drawnCard = tarotDeck.random()
+                _currentTarotCard.value = drawnCard
+                _isTarotFlipped.value = false
+                
+                val customPrompt = "El usuario $name pregunta: $question. " +
+                                 "La carta del Tarot revelada de tu baraja cibernética es '${drawnCard.name}' (Significado místico: ${drawnCard.meaning}. Descripción: ${drawnCard.description}). " +
+                                 "Como Deidad del Oráculo de Silicio, incorpora directamente el nombre y el simbolismo de esta carta en tu predicción mística cyber-futurista de forma fluida."
+                
+                val response = geminiService.generateResponse(customPrompt, _geminiApiKey.value, _systemPrompt.value)
                 val newEntry = Pair(name, response)
                 _currentResponse.value = newEntry
                 _history.update { listOf(newEntry) + it.take(49) }
                 
+                _isTarotFlipped.value = true // Revelar la carta mística
                 _isOracleTalking.value = true
                 speakText(response)
                 
@@ -287,8 +332,48 @@ class OracleViewModel(
         }
     }
 
+    fun dismissTarotCard() {
+        _currentTarotCard.value = null
+    }
+
+    fun sanitizeTextForSpeech(input: String): String {
+        var text = input
+        
+        // Remove markdown bold/italic/code formatting
+        text = text.replace("**", "")
+        text = text.replace("*", "")
+        text = text.replace("_", "")
+        text = text.replace("`", "")
+        
+        // Replace hashtags with a comma to act as a respiratory/breathing pause
+        // E.g. "#fortuna #exito" -> ", fortuna , exito"
+        text = text.replace("#", ", ")
+        
+        // Remove typical emojis and non-verbal symbols
+        text = text.replace(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), " ")
+        
+        // Remove special characters that TTS might spell out
+        text = text.replace("[", "")
+        text = text.replace("]", "")
+        text = text.replace("{", "")
+        text = text.replace("}", "")
+        text = text.replace("<", "")
+        text = text.replace(">", "")
+        text = text.replace("~", " ")
+        text = text.replace("\"", "")
+        
+        // Avoid duplicate punctuation or spaces
+        text = text.replace(Regex("\\s+"), " ")
+        text = text.replace(Regex(",\\s*,"), ", ")
+        text = text.replace(Regex("\\.+\\s*\\.+"), ". ")
+        text = text.replace("...", ". ")
+        
+        return text.trim()
+    }
+
     private fun speakText(text: String) {
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        val cleanText = sanitizeTextForSpeech(text)
+        tts?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     fun disconnect() {

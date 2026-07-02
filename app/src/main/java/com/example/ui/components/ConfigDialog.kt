@@ -181,6 +181,11 @@ fun ConfigDialog(
                                     status = if (geminiApiKey.isNotEmpty()) "NÚCLEO NEURONAL CONFIGURADO" else "IA SIMULADA",
                                     color = if (geminiApiKey.isNotEmpty()) Color(0xFF00E676) else Color(0xFFFFEA00)
                                 )
+                                DiagnosticStep(
+                                    label = "5. VALIDACIÓN DE POLÍGONOS MÍSTICOS",
+                                    status = "PRECISIÓN DINÁMICA ACTIVA",
+                                    color = Color(0xFFE040FB)
+                                )
                             }
                         }
                     }
