@@ -58,8 +58,24 @@ class OracleViewModel(
     private val _serverUrl = MutableStateFlow("http://192.168.1.26:3000")
     val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
 
+    private val _connectionLogs = MutableStateFlow<List<String>>(emptyList())
+    val connectionLogs: StateFlow<List<String>> = _connectionLogs.asStateFlow()
+
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
+    
+    fun addLog(message: String) {
+        viewModelScope.launch {
+            val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+            _connectionLogs.update { current ->
+                val newLogs = current.toMutableList()
+                newLogs.add(0, "[$timestamp] $message")
+                if (newLogs.size > 100) newLogs.removeLast()
+                newLogs
+            }
+            Log.d("OracleApp", message)
+        }
+    }
 
     private val _isConnecting = MutableStateFlow(false)
     val isConnecting: StateFlow<Boolean> = _isConnecting.asStateFlow()
@@ -214,16 +230,19 @@ class OracleViewModel(
             socket?.on(Socket.EVENT_CONNECT) {
                 _isConnected.value = true
                 _isConnecting.value = false
+                addLog("Conexión establecida con éxito.")
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
                 _isConnected.value = false
                 _isConnecting.value = false
+                addLog("Desconectado del servidor relay.")
             }
             
             socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
                 _isConnecting.value = false
                 val errorMsg = args.firstOrNull()?.toString() ?: "Error desconocido"
+                addLog("Error de conexión Socket.IO: $errorMsg")
                 // Silenced error flow for local-only mode to prevent UI spam
                 Log.e("Oracle", "Error de conexión Socket.IO: $errorMsg (Modo Local)")
             }

@@ -42,6 +42,7 @@ fun ConfigDialog(
     val isConnected by viewModel.isConnected.collectAsState()
     val isConnecting by viewModel.isConnecting.collectAsState()
     val errorFlow by viewModel.errorFlow.collectAsState()
+    val connectionLogs by viewModel.connectionLogs.collectAsState()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -213,6 +214,19 @@ fun ConfigDialog(
                     )
                     
                     OutlinedTextField(
+                        value = serverUrl,
+                        onValueChange = { viewModel.updateServerUrl(it) },
+                        label = { Text("Server URL (Socket.IO Live Scraper Relay)", color = Color.White.copy(alpha = 0.7f)) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
                         value = geminiApiKey,
                         onValueChange = { viewModel.updateGeminiApiKey(it) },
                         label = { Text("Gemini AI API Key", color = Color.White.copy(alpha = 0.7f)) },
@@ -308,6 +322,43 @@ fun ConfigDialog(
                         }
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Logs Monitor Area
+                Text(
+                    text = "VISOR DE CONEXIÓN (LOGS)",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                        .padding(8.dp)
+                ) {
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        reverseLayout = true
+                    ) {
+                        items(connectionLogs.size) { index ->
+                            Text(
+                                text = connectionLogs[index],
+                                color = if (connectionLogs[index].contains("Error")) Color(0xFFFF5252) else Color(0xFF00E676),
+                                fontSize = 9.sp,
+                                fontFamily = FontFamily.Monospace,
+                                lineHeight = 12.sp,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -327,10 +378,7 @@ fun ConfigDialog(
                     }
 
                     Button(
-                        onClick = { 
-                            viewModel.connect()
-                            onDismiss()
-                        },
+                        onClick = { viewModel.connect() }, // DO NOT DISMISS ON CONNECT
                         modifier = Modifier
                             .weight(1.2f)
                             .shadow(8.dp, spotColor = MaterialTheme.colorScheme.primary, ambientColor = MaterialTheme.colorScheme.primary),

@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
@@ -123,7 +124,60 @@ fun MysticOracleVisualizer(
                 .aspectRatio(1f)
         )
 
-        // 3. Floating Tarot Cards in Orbit around her
+        // 3. Sacred Geometry / 4D Tesseract Projections (Rotating deeply in the background)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2, size.height / 2)
+            val baseRadius = (size.minDimension / 2) * 0.75f
+            
+            // Draw complex rotating geometric polygons (simulating 4D projection)
+            val polyCount = 3
+            for (p in 0 until polyCount) {
+                val pScale = 1f - (p * 0.15f) + (sin(magicPhase * 0.5f) * 0.05f)
+                val pRadius = baseRadius * pScale
+                val pRotation = (magicPhase * (1.5f + p * 0.5f)) * (if (p % 2 == 0) 1 else -1)
+                
+                val path = Path()
+                val vertices = 8
+                for (v in 0 until vertices) {
+                    val angle = (v * (360f / vertices)) * (Math.PI / 180f) + pRotation
+                    // Add slight Z-depth distortion
+                    val zDistortion = 1f + 0.1f * sin(angle + magicPhase * 2f).toFloat()
+                    val px = center.x + (pRadius * zDistortion * cos(angle)).toFloat()
+                    val py = center.y + (pRadius * zDistortion * sin(angle) * 0.6f).toFloat() // Squish Y for 3D perspective
+                    if (v == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                }
+                path.close()
+                
+                drawPath(
+                    path = path,
+                    color = tertiaryColor.copy(alpha = 0.15f + (0.15f * p)),
+                    style = Stroke(
+                        width = 1.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f), magicPhase * 5f)
+                    )
+                )
+                
+                // Connect opposing vertices for hypercube/tesseract aesthetic
+                for (v in 0 until vertices / 2) {
+                    val a1 = (v * (360f / vertices)) * (Math.PI / 180f) + pRotation
+                    val a2 = ((v + vertices / 2) * (360f / vertices)) * (Math.PI / 180f) + pRotation
+                    
+                    val px1 = center.x + (pRadius * cos(a1)).toFloat()
+                    val py1 = center.y + (pRadius * sin(a1) * 0.6f).toFloat()
+                    val px2 = center.x + (pRadius * cos(a2)).toFloat()
+                    val py2 = center.y + (pRadius * sin(a2) * 0.6f).toFloat()
+                    
+                    drawLine(
+                        color = secondaryColor.copy(alpha = 0.1f),
+                        start = Offset(px1, py1),
+                        end = Offset(px2, py2),
+                        strokeWidth = 0.5.dp.toPx()
+                    )
+                }
+            }
+        }
+
+        // 4. Floating Tarot Cards in Orbit around her
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2, size.height / 2)
             val orbitRadius = (size.minDimension / 2) * 0.9f
@@ -149,8 +203,11 @@ fun MysticOracleVisualizer(
                 
                 val scaleFactor = 0.8f + (0.4f * zDepth)
                 
+                // 3D Card Spin: Scale X based on sine of angle to simulate flipping
+                val cardSpin = sin(magicPhase * 2f + i).toFloat()
+                
                 // Animate size & rotation
-                val cardWidth = 32.dp.toPx() * scaleFactor
+                val cardWidth = 32.dp.toPx() * scaleFactor * Math.abs(cardSpin).coerceAtLeast(0.1f)
                 val cardHeight = 48.dp.toPx() * scaleFactor
                 val cardRotation = (finalAngle * (180 / Math.PI)).toFloat() + 90f + (sin(magicPhase + i) * 15f)
 
@@ -180,7 +237,7 @@ fun MysticOracleVisualizer(
                     // Draw inner cosmic runic symbol inside the card
                     drawCircle(
                         color = tertiaryColor.copy(alpha = 0.5f),
-                        radius = 6.dp.toPx(),
+                        radius = 6.dp.toPx() * Math.abs(cardSpin).coerceAtLeast(0.1f),
                         center = Offset(0f, 0f),
                         style = Stroke(width = 1.dp.toPx())
                     )
@@ -194,15 +251,15 @@ fun MysticOracleVisualizer(
                     )
                     drawLine(
                         color = tertiaryColor.copy(alpha = 0.5f),
-                        start = Offset(-6.dp.toPx(), 0f),
-                        end = Offset(6.dp.toPx(), 0f),
+                        start = Offset((-6.dp.toPx()) * Math.abs(cardSpin), 0f),
+                        end = Offset((6.dp.toPx()) * Math.abs(cardSpin), 0f),
                         strokeWidth = 1.dp.toPx()
                     )
                 }
             }
         }
 
-        // 4. Main Character Portrait
+        // 5. Main Character Portrait
         Box(
             modifier = Modifier
                 .fillMaxHeight(0.72f)
@@ -361,18 +418,24 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandArc(
     phase: Float,
     isLeft: Boolean
 ) {
-    val scaleFactor = if (isTalking) 1.3f else 1.0f
-    val r = 16.dp.toPx() * scaleFactor
+    val scaleFactor = if (isTalking) 1.5f else 1.0f
+    val r = 18.dp.toPx() * scaleFactor
     
     // Draw magic energy core
     drawCircle(
         color = Color.White,
-        radius = 4.dp.toPx() * scaleFactor,
+        radius = 5.dp.toPx() * scaleFactor,
         center = center
     )
+    
+    // Core radial glow
     drawCircle(
-        color = glowColor.copy(alpha = if (isTalking) 0.8f else 0.4f),
-        radius = 10.dp.toPx() * scaleFactor,
+        brush = Brush.radialGradient(
+            colors = listOf(glowColor.copy(alpha = if (isTalking) 0.9f else 0.5f), Color.Transparent),
+            center = center,
+            radius = 20.dp.toPx() * scaleFactor
+        ),
+        radius = 20.dp.toPx() * scaleFactor,
         center = center
     )
 
@@ -380,27 +443,69 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandArc(
     val path = Path()
     val direction = if (isLeft) 1f else -1f
     
-    path.moveTo(center.x - direction * r, center.y - r)
-    path.quadraticTo(
-        center.x + direction * r * 0.2f, center.y - r * 0.1f,
-        center.x - direction * r, center.y + r
-    )
+    // Cyber-mystic fingers/spokes
+    val fingerCount = 4
+    for (i in 0 until fingerCount) {
+        val fAngle = (if (isLeft) Math.PI else 0.0) - direction * (Math.PI / 4) + direction * (i * Math.PI / 6) + sin(phase * 1.5f) * 0.15f
+        val fRadius = r * (1.2f + 0.3f * cos(phase + i))
+        
+        path.moveTo(center.x, center.y)
+        path.quadraticTo(
+            center.x + (r * 0.5f * cos(fAngle)).toFloat(), 
+            center.y + (r * 0.5f * sin(fAngle)).toFloat(),
+            center.x + (fRadius * cos(fAngle)).toFloat(), 
+            center.y + (fRadius * sin(fAngle)).toFloat()
+        )
+    }
     
     drawPath(
         path = path,
         color = Color.White.copy(alpha = 0.8f),
-        style = Stroke(width = 2.dp.toPx())
+        style = Stroke(
+            width = 1.5.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+    )
+
+    // Outer rotating energy binding ring
+    drawCircle(
+        color = glowColor.copy(alpha = 0.6f),
+        radius = r * 1.2f,
+        center = center,
+        style = Stroke(
+            width = 1.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f), phase * 15f * direction)
+        )
+    )
+    
+    // Energy stream connecting hand to the central body (Oracle)
+    val bodyCenter = Offset(size.width / 2, size.height * 0.72f) // Pointing near her core
+    val streamPath = Path()
+    streamPath.moveTo(center.x, center.y)
+    streamPath.quadraticTo(
+        center.x + (bodyCenter.x - center.x) / 2f, center.y - 40.dp.toPx() * scaleFactor,
+        bodyCenter.x, bodyCenter.y
+    )
+    
+    drawPath(
+        path = streamPath,
+        color = glowColor.copy(alpha = if (isTalking) 0.4f else 0.15f),
+        style = Stroke(
+            width = 2.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), -phase * 30f)
+        )
     )
 
     // Floating micro-sigils around channeling hands
-    val particleCount = 4
+    val particleCount = 6
     for (i in 0 until particleCount) {
-        val angle = (phase + i * (2 * Math.PI / particleCount)).toFloat()
-        val px = center.x + r * 1.3f * cos(angle)
-        val py = center.y + r * 1.3f * sin(angle)
+        val angle = (phase * (if (isLeft) -1f else 1f) + i * (2 * Math.PI / particleCount)).toFloat()
+        val pRadius = r * (1.4f + 0.2f * sin(phase * 3f + i))
+        val px = center.x + pRadius * cos(angle)
+        val py = center.y + pRadius * sin(angle)
         drawCircle(
-            color = glowColor.copy(alpha = 0.5f),
-            radius = 2.dp.toPx(),
+            color = glowColor.copy(alpha = 0.7f),
+            radius = 2.dp.toPx() * (if (isTalking) 1.5f else 1.0f),
             center = Offset(px, py)
         )
     }
