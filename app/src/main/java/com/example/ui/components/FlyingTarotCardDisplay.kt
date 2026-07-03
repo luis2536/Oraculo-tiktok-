@@ -101,12 +101,11 @@ fun FlyingTarotCardDisplay(
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Background blur overlay to focus on card draw
+            // Background dark overlay (highly optimized - removed heavy software blur to prevent freezing on budget devices)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f))
-                    .blur(16.dp)
+                    .background(Color.Black.copy(alpha = 0.82f)) // Slightly higher alpha for robust depth without blur
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -117,17 +116,17 @@ fun FlyingTarotCardDisplay(
             val colorMain = parseColor(card.mainColorHex)
             val colorSecondary = parseColor(card.secondaryColorHex)
             
+            // Highly optimized glow halo utilizing native radial gradient blending without costly blur filters
             Box(
                 modifier = Modifier
                     .offset(y = hoverY.dp)
-                    .width(280.dp)
-                    .height(420.dp)
-                    .blur(24.dp)
+                    .width(320.dp)
+                    .height(460.dp)
                     .background(
                         brush = Brush.radialGradient(
-                            colors = listOf(colorMain.copy(alpha = 0.6f), Color.Transparent),
+                            colors = listOf(colorMain.copy(alpha = 0.45f), colorMain.copy(alpha = 0.12f), Color.Transparent),
                         ),
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(32.dp)
                     )
             )
 
@@ -748,11 +747,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTarotSymbol(
     }
 }
 
-// Utility extension for applying shadow to card headings
-private fun Modifier.shadowDrop(color: Color) = this.blur(0.2.dp).then(
-    // Simple custom text shadow effect through typography styles
-    Modifier
-)
+// Utility extension for applying shadow to card headings (optimized to remove blur render calls)
+private fun Modifier.shadowDrop(color: Color) = this
 
 private fun parseColor(hex: String): Color {
     return try {

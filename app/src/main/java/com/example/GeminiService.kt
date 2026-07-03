@@ -76,7 +76,12 @@ class GeminiService {
             return@withContext "Error: Gemini API Key no configurada. Añádela en Configuración."
         }
 
-        val actualSystemPrompt = systemPrompt ?: "Eres un Oráculo místico y cyber-futurista en TikTok Live. Das respuestas breves, misteriosas, impactantes y divertidas. Habla en español, pausado y con tono de deidad o entidad digital avanzada. Tus respuestas no deben superar las 3 oraciones cortas."
+        val baseSystem = "Eres un Oráculo místico y cyber-futurista en TikTok Live. Responde de forma muy misteriosa e impactante en español. LÍMITE CRÍTICO: Tu respuesta DEBE ser extremadamente breve, de máximo 15 palabras en una sola oración fluida y directa, para mantener la fluidez en el stream."
+        val actualSystemPrompt = if (systemPrompt.isNullOrEmpty()) {
+            baseSystem
+        } else {
+            "$systemPrompt. NOTA: Responde en máximo 15 palabras en una sola oración mística y contundente."
+        }
 
         val request = GenerateContentRequest(
             contents = listOf(

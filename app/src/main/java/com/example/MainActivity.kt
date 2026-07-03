@@ -8,9 +8,11 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -181,28 +183,60 @@ fun OracleApp(viewModel: OracleViewModel) {
                     ManualAskDialog(viewModel, onDismiss = { showManualAsk = false })
                 }
             
-            // Main layout
-            // Center (Oracle - Top half with stable size to prevent overlapping and squishing)
+            // Collect connection logs for real-time live chat parsing
+            val connectionLogs by viewModel.connectionLogs.collectAsState()
+            
+            // Redesigned Top Banner for Live Streaming
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFD4AF37).copy(alpha = 0.3f)) // Gold border
+            ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "✦ ESCRIBE TU NOMBRE + PREGUNTA ✦",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.5.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Lecturas sagradas en vivo por orden de llegada",
+                        color = Color(0xFFD4AF37), // Pure gold/amber
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        letterSpacing = 0.5.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Center (Oracle - Beautifully sized to fit on phones without squishing)
             Box(modifier = Modifier
-                .height(180.dp)
+                .height(190.dp)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
                 val infiniteTransition = rememberInfiniteTransition(label = "oracle")
                 val scale by infiniteTransition.animateFloat(
                     initialValue = 1f,
-                    targetValue = if (isOracleTalking) 1.15f else 1.05f,
+                    targetValue = if (isOracleTalking) 1.12f else 1.04f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(if (isOracleTalking) 400 else 3000, easing = LinearEasing),
+                        animation = tween(if (isOracleTalking) 500 else 4000, easing = EaseInOutSine),
                         repeatMode = RepeatMode.Reverse
                     ), label = "scale"
-                )
-                val offsetY by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = if (isOracleTalking) 0f else -6f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(2500, easing = EaseInOutSine),
-                        repeatMode = RepeatMode.Reverse
-                    ), label = "offsetY"
                 )
 
                 MysticOracleVisualizer(
@@ -216,35 +250,111 @@ fun OracleApp(viewModel: OracleViewModel) {
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Panels (Queue, History & Ranking - Middle half, automatically occupies remaining space)
+            // Split Panels: Left: Turnos (Queue), Right: Chat en Vivo (Real-time Comments)
             Row(modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                
-                AnimatedVisibility(
-                    visible = showHistory,
-                    modifier = Modifier.weight(1f),
-                    enter = fadeIn() + expandHorizontally(),
-                    exit = fadeOut() + shrinkHorizontally()
+                // Left Panel: TURNOS (Fila de espera)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 ) {
-                    // History Panel
-                    Column {
-                        Text("HISTORIAL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            itemsIndexed(history) { index, item ->
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
-                                        Text(item.first, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(item.second, color = Color.White, style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        text = "✦ TURNOS ✦",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(alpha = 0.03f))
+                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                            .padding(8.dp)
+                    ) {
+                        if (queue.isEmpty() && currentResponse == null) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "Cola vacía\nEsperando preguntas...",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                // 1. Active reading highlight
+                                currentResponse?.let { active ->
+                                    item {
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFD81B60).copy(alpha = 0.25f)),
+                                            border = BorderStroke(1.dp, Color(0xFFFF4081)),
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(10.dp),
+                                                    strokeWidth = 1.5.dp,
+                                                    color = Color.White
+                                                )
+                                                Text(
+                                                    text = "${active.first} leyendo...",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // 2. Queue items
+                                itemsIndexed(queue) { index, item ->
+                                    val isReading = currentResponse?.first == item.name
+                                    if (!isReading) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color.White.copy(alpha = 0.05f))
+                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${index + 1}.",
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                modifier = Modifier.width(18.dp)
+                                            )
+                                            Text(
+                                                text = item.name,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Medium,
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -252,129 +362,170 @@ fun OracleApp(viewModel: OracleViewModel) {
                     }
                 }
                 
-                AnimatedVisibility(
-                    visible = !showHistory,
-                    modifier = Modifier.weight(1f),
-                    enter = fadeIn() + expandHorizontally(),
-                    exit = fadeOut() + shrinkHorizontally()
+                // Right Panel: CHAT EN VIVO (Live Comment Scraper Visual Feed)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 ) {
-                    // Left Panel (Queue)
-                    Column {
-                        Text("TURNOS", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            itemsIndexed(queue) { index, item ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.White.copy(alpha = 0.05f))
-                                        .padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("${index + 1}.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.width(20.dp))
-                                    Text(item.name, color = Color.White, fontWeight = FontWeight.Medium)
+                    Text(
+                        text = "💬 CHAT EN VIVO",
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.5.sp,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(alpha = 0.03f))
+                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                            .padding(8.dp)
+                    ) {
+                        // Dynamically extract real comments from connection logs
+                        val liveComments = remember(connectionLogs) {
+                            connectionLogs
+                                .filter { it.contains("✔ COMENTARIO LEÍDO -> ") }
+                                .map { log ->
+                                    val logBody = log.substringAfter("✔ COMENTARIO LEÍDO -> @")
+                                    val parts = logBody.split(": ", limit = 2)
+                                    val user = parts.getOrNull(0) ?: "Anónimo"
+                                    val comment = parts.getOrNull(1) ?: ""
+                                    user to comment
                                 }
-                            }
+                                .take(6) // Take top 6 latest
                         }
-                    }
-                }
-                
-                // Right Panel (Ranking)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("RANKING", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        itemsIndexed(contributors) { index, item ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.White.copy(alpha = 0.05f))
-                                    .padding(8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                        
+                        if (liveComments.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "Esperando comentarios\ndesde TikTok Live...",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    Text("${index + 1}.", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, modifier = Modifier.width(20.dp))
-                                    Text(item.name, color = Color.White, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                items(liveComments) { chat ->
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.White.copy(alpha = 0.05f))
+                                            .padding(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "@${chat.first}",
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 10.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = chat.second,
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            lineHeight = 14.sp
+                                        )
+                                    }
                                 }
-                                Text(item.score.toString(), color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Black)
                             }
                         }
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            // Bottom Response ("Pancarta" layout, beautifully integrated vertically to prevent overlaps)
-            Box(
+            // Bottom Response Card ("Pancarta" layout, perfectly suited for vertical streams)
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF1E1E2E).copy(alpha = 0.75f),
-                                Color(0xFF1E1E2E).copy(alpha = 0.95f)
-                            )
-                        )
-                    )
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF161622).copy(alpha = 0.85f)),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.5.dp, Color(0xFFD4AF37).copy(alpha = 0.4f)) // Glowing Gold border
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth()
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .fillMaxWidth()
                 ) {
                     if (currentResponse != null) {
+                        // User Name Title Plate
                         Text(
-                            text = currentResponse!!.first.uppercase(),
-                            color = MaterialTheme.colorScheme.secondary,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp,
+                            text = "🔮 LECTURA PARA: ${currentResponse!!.first.uppercase()}",
+                            color = Color(0xFFD4AF37), // Bright Gold
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.5.sp,
                             textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "El oráculo revela tu destino...",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Dynamic audio / voice wave visualizer
+                        // Audio waveform sync
                         AudioWaveform(
                             isPlaying = isOracleTalking,
                             modifier = Modifier.height(28.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         
+                        // Prophecy Text
                         Text(
                             text = "\"${currentResponse!!.second}\"",
                             color = Color.White,
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            lineHeight = 24.sp
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 22.sp,
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         )
                     } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            // Low-intensity idle signal waveform
+                        // Idle Listening Mode
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
                             AudioWaveform(
                                 isPlaying = false,
-                                modifier = Modifier.height(20.dp)
+                                modifier = Modifier.height(18.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(12.dp),
+                                    modifier = Modifier.size(11.dp),
                                     strokeWidth = 1.5.dp,
                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "ENLAZANDO CON EL NÚCLEO NEURONAL...",
-                                    color = Color.Gray,
-                                    style = MaterialTheme.typography.labelSmall,
+                                    text = "ORÁCULO CANALIZANDO ENERGÍAS...",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
                                     letterSpacing = 1.sp
                                 )
                             }

@@ -109,34 +109,54 @@ fun ConfigDialog(
                         }
                     }
 
-                    Text("PARÁMETROS DEL SISTEMA", color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("PARÁMETROS DEL SISTEMA", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
 
-                    OutlinedTextField(
-                        value = tiktokUser,
-                        onValueChange = { viewModel.updateTiktokUser(it) },
-                        label = { Text("TikTok Account User", color = Color.White.copy(alpha = 0.7f)) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        OutlinedTextField(
+                            value = tiktokUser,
+                            onValueChange = { viewModel.updateTiktokUser(it) },
+                            label = { Text("Usuario de TikTok Live", color = Color.White.copy(alpha = 0.7f)) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
+                            ),
+                            placeholder = { Text("Ejemplo: mi_usuario", color = Color.White.copy(alpha = 0.3f)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        val cleanUser = tiktokUser.replace("@", "").trim()
+                        val previewUrl = "tiktok.com/@$cleanUser/live"
+                        Text(
+                            text = "🔗 Enlace de Escucha: $previewUrl",
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+                        Text(
+                            text = "Nota: Ingresa tu nombre de usuario de TikTok sin símbolos ni espacios.",
+                            color = Color.White.copy(alpha = 0.4f),
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
 
                     OutlinedTextField(
                         value = geminiApiKey,
                         onValueChange = { viewModel.updateGeminiApiKey(it) },
-                        label = { Text("Gemini AI API Key", color = Color.White.copy(alpha = 0.7f)) },
+                        label = { Text("Gemini AI API Key (v1beta)", color = Color.White.copy(alpha = 0.7f)) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                             focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
                         ),
+                        placeholder = { Text("Pega tu API Key de Google AI Studio", color = Color.White.copy(alpha = 0.3f)) },
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     OutlinedTextField(
                         value = systemPrompt,
                         onValueChange = { viewModel.updateSystemPrompt(it) },
-                        label = { Text("System Prompt", color = Color.White.copy(alpha = 0.7f)) },
+                        label = { Text("System Prompt (Personalidad de Oráculo)", color = Color.White.copy(alpha = 0.7f)) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                             focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
