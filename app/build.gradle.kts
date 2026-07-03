@@ -107,7 +107,6 @@ dependencies {
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
-  implementation(libs.socket.io.client)
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
   implementation(libs.retrofit.converter.serialization)

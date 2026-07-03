@@ -1,0 +1,30 @@
+--- app/src/main/java/com/example/ui/components/MysticOracleVisualizer.kt
++++ app/src/main/java/com/example/ui/components/MysticOracleVisualizer.kt
+@@ -192,11 +192,10 @@
+                 .aspectRatio(1f)
+                 .scale(scale)
+         ) {
+-            val levitationOffset = sin(magicPhase * 2f).toFloat() * 12.dp.toPx()
++            val levitationOffset = sin(magicPhase * 2f).toFloat() * 12f
+             Image(
+-                painter = painterResource(id = R.drawable.cyber_oracle), // Assuming an image exists
++                painter = painterResource(id = R.drawable.img_oracle_character),
+                 contentDescription = "Cyber Oracle",
+                 contentScale = ContentScale.Fit,
+                 modifier = Modifier
+                     .fillMaxSize()
+@@ -204,11 +203,15 @@
+                     .clip(CircleShape)
+             )
+         }
+-
+-        // 3. Floating Particles (Optimized)
+-        Particles(
+-            modifier = Modifier.fillMaxSize(),
+-            color = MaterialTheme.colorScheme.primary,
+-            particleCount = 15, // Reduced count
+-            speed = if (isOracleTalking) 1.5f else 0.5f,
+-            scale = scale
+-        )
+     }
+ }

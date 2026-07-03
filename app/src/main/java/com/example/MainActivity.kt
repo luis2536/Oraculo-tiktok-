@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
         val geminiService = GeminiService()
         val factory = viewModelFactory {
             initializer {
-                OracleViewModel(prefs, geminiService)
+                OracleViewModel(this@MainActivity.application)
             }
         }
         setContent {
@@ -164,6 +164,15 @@ fun OracleApp(viewModel: OracleViewModel) {
                     }
                 }
                 
+                val tiktokUser by viewModel.tiktokUser.collectAsState()
+                if (isConnected) {
+                    com.example.ui.components.TikTokScraperWebView(
+                        username = tiktokUser,
+                        onComment = { user, text -> viewModel.onNewCommentReceived(user, text) },
+                        onLog = { log -> viewModel.addLog(log) }
+                    )
+                }
+
                 if (showConfig) {
                     ConfigDialog(viewModel, onDismiss = { showConfig = false })
                 }
@@ -199,7 +208,6 @@ fun OracleApp(viewModel: OracleViewModel) {
                 MysticOracleVisualizer(
                     isOracleTalking = isOracleTalking,
                     scale = scale,
-                    offsetY = offsetY,
                     modifier = Modifier
                         .fillMaxHeight()
                         .aspectRatio(1f)
