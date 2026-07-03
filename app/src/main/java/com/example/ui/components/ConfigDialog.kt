@@ -213,19 +213,6 @@ fun ConfigDialog(
                     )
                     
                     OutlinedTextField(
-                        value = serverUrl,
-                        onValueChange = { viewModel.updateServerUrl(it) },
-                        label = { Text("Server URL (Socket.IO Live Scraper Relay)", color = Color.White.copy(alpha = 0.7f)) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    OutlinedTextField(
                         value = geminiApiKey,
                         onValueChange = { viewModel.updateGeminiApiKey(it) },
                         label = { Text("Gemini AI API Key", color = Color.White.copy(alpha = 0.7f)) },
@@ -377,14 +364,16 @@ private fun DiagnosticStep(
             color = Color.White.copy(alpha = 0.6f),
             fontSize = 9.sp,
             fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f).padding(end = 4.dp)
         )
         Text(
             text = status,
             color = color,
             fontSize = 9.sp,
             fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Black
+            fontWeight = FontWeight.Black,
+            textAlign = TextAlign.End
         )
     }
 }

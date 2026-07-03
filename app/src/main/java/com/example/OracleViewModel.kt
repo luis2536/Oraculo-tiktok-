@@ -224,7 +224,8 @@ class OracleViewModel(
             socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
                 _isConnecting.value = false
                 val errorMsg = args.firstOrNull()?.toString() ?: "Error desconocido"
-                _errorFlow.value = "Error de conexión Socket.IO: $errorMsg"
+                // Silenced error flow for local-only mode to prevent UI spam
+                Log.e("Oracle", "Error de conexión Socket.IO: $errorMsg (Modo Local)")
             }
 
             socket?.on("queue_update") { args ->

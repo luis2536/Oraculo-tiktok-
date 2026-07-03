@@ -202,7 +202,7 @@ fun OracleApp(viewModel: OracleViewModel) {
                     offsetY = offsetY,
                     modifier = Modifier
                         .fillMaxHeight()
-                        .aspectRatio(1.2f)
+                        .aspectRatio(1f)
                 )
             }
 

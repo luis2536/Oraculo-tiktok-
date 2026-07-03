@@ -126,27 +126,33 @@ fun MysticOracleVisualizer(
         // 3. Floating Tarot Cards in Orbit around her
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2, size.height / 2)
-            val orbitRadius = (size.minDimension / 2) * 0.82f
+            val orbitRadius = (size.minDimension / 2) * 0.9f
             
-            // Render 3 Oracle Cards that hover and rotate mystically
-            val cardCount = 3
+            // Render 5 Oracle Cards that hover and rotate mystically in 3D-like orbits
+            val cardCount = 5
             for (i in 0 until cardCount) {
                 // Symmetrically space cards, with a dynamic offset over time
                 val cardBaseAngle = (i * (360f / cardCount)) * (Math.PI / 180)
                 val dynamicOffset = if (isOracleTalking) {
-                    sin(magicPhase.toDouble() + i * 1.5).toFloat() * 0.15f
+                    sin(magicPhase.toDouble() + i * 1.5).toFloat() * 0.2f
                 } else {
-                    sin(magicPhase.toDouble() / 2 + i * 1.2).toFloat() * 0.06f
+                    sin(magicPhase.toDouble() / 2 + i * 1.2).toFloat() * 0.08f
                 }
                 
-                val finalAngle = cardBaseAngle + dynamicOffset
-                val cx = center.x + orbitRadius * cos(finalAngle).toFloat()
-                val cy = center.y + orbitRadius * sin(finalAngle).toFloat()
+                // Simulate 3D Depth by scaling and varying orbit radius
+                val zDepth = sin(cardBaseAngle + magicPhase).toFloat()
+                val currentRadius = orbitRadius * (1f + 0.1f * zDepth)
+                val finalAngle = cardBaseAngle + dynamicOffset + (magicPhase * 0.5)
+                
+                val cx = center.x + currentRadius * cos(finalAngle).toFloat()
+                val cy = center.y + currentRadius * sin(finalAngle).toFloat() * 0.5f // Squished Y to simulate 3D tilt
+                
+                val scaleFactor = 0.8f + (0.4f * zDepth)
                 
                 // Animate size & rotation
-                val cardWidth = 32.dp.toPx()
-                val cardHeight = 48.dp.toPx()
-                val cardRotation = (finalAngle * (180 / Math.PI)).toFloat() + 90f + (sin(magicPhase + i) * 10f)
+                val cardWidth = 32.dp.toPx() * scaleFactor
+                val cardHeight = 48.dp.toPx() * scaleFactor
+                val cardRotation = (finalAngle * (180 / Math.PI)).toFloat() + 90f + (sin(magicPhase + i) * 15f)
 
                 withTransform({
                     translate(cx, cy)
@@ -310,19 +316,23 @@ fun MysticOracleVisualizer(
             }
         }
 
-        // 6. Mystic Cybernetic Channeling Hands (Floating Left and Right)
+        // 6. Mystic Cybernetic Channeling Hands (Floating Left and Right in 3D Arcs)
         Canvas(modifier = Modifier.fillMaxSize()) {
             val h = size.height
             val w = size.width
             
-            // Hand motion offset
-            val leftHandY = h * 0.72f + sin(magicPhase.toDouble() * 1.5).toFloat() * 20.dp.toPx() * (if (isOracleTalking) 1.5f else 0.5f)
-            val rightHandY = h * 0.72f + cos(magicPhase.toDouble() * 1.5).toFloat() * 20.dp.toPx() * (if (isOracleTalking) 1.5f else 0.5f)
+            // Hand motion offset (simulating complex breathing 8-figure movement)
+            val baseLeftY = h * 0.72f
+            val baseRightY = h * 0.72f
+            val animMultiplier = if (isOracleTalking) 1.8f else 0.8f
             
-            val leftHandX = w * 0.12f
-            val rightHandX = w * 0.88f
+            val leftHandY = baseLeftY + sin(magicPhase.toDouble() * 1.5).toFloat() * 25.dp.toPx() * animMultiplier
+            val rightHandY = baseRightY + cos(magicPhase.toDouble() * 1.5).toFloat() * 25.dp.toPx() * animMultiplier
             
-            // Draw Glowing Left Cybernetic Channeling Hand (represented as stylized futuristic energy vectors)
+            val leftHandX = w * 0.12f + cos(magicPhase.toDouble() * 0.8).toFloat() * 15.dp.toPx() * animMultiplier
+            val rightHandX = w * 0.88f + sin(magicPhase.toDouble() * 0.8).toFloat() * 15.dp.toPx() * animMultiplier
+            
+            // Draw Glowing Left Cybernetic Channeling Hand
             drawHandArc(
                 center = Offset(leftHandX, leftHandY),
                 glowColor = primaryColor,
