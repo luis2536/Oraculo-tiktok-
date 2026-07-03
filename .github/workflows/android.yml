@@ -2,28 +2,37 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
-        
+        cache: gradle
+
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v4
+      uses: gradle/actions/setup-gradle@v3
       with:
-        # Aseguramos que use el wrapper recién regenerado
-        gradle-version: '9.3.1'
-        
+        wrapper-validation: false
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
     - name: Build with Gradle
-      # Usamos el wrapper explícitamente para asegurar que se use el archivo correcto
-      run: ./gradlew :app:assembleDebug
+      run: ./gradlew assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: app/build/outputs/apk/debug/app-debug.apk
