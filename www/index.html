@@ -88,7 +88,7 @@
           <button class="close-btn" id="close-settings">&times;</button>
         </div>
 
-        <div class="form-group">
+        <div class="form-group advanced-option hidden">
           <label for="input-api-key">Gemini API Key</label>
           <input type="password" id="input-api-key" placeholder="AIzaSy...">
         </div>
@@ -98,7 +98,7 @@
           <input type="text" id="input-username" placeholder="cyber_oraculo_live">
         </div>
 
-        <div class="form-group">
+        <div class="form-group advanced-option hidden">
           <label for="input-prompt">Instrucción del Sistema (Personalidad)</label>
           <textarea id="input-prompt" rows="4" placeholder="Personalidad mística..."></textarea>
         </div>
@@ -122,6 +122,40 @@
         </div>
 
         <button class="btn-primary" id="save-settings">Guardar Cambios</button>
+      </div>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" class="install-banner hidden">
+      <span>🔮 Instalar Oráculo en tu pantalla de inicio</span>
+      <button id="btn-pwa-install">INSTALAR APP</button>
+    </div>
+
+    <!-- 3D Tarot Card Overlay -->
+    <div id="tarot-overlay" class="tarot-overlay hidden">
+      <div class="tarot-card-container">
+        <div class="tarot-card" id="pwa-tarot-card">
+          <!-- Back of Card -->
+          <div class="tarot-card-back">
+            <div class="tarot-inner-border"></div>
+            <div class="tarot-rotating-rings"></div>
+            <div class="tarot-back-title">ORÁCULO DE SILICIO</div>
+            <div class="tarot-back-subtitle">CONEXIÓN CUÁNTICA</div>
+          </div>
+          <!-- Front of Card -->
+          <div class="tarot-card-front">
+            <div class="tarot-front-header">MAJOR ARCANA</div>
+            <div class="tarot-symbol-container" id="tarot-symbol">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="tarot-card-name" id="tarot-name">EL MAGO</div>
+            <div class="tarot-card-meaning-box">
+              <span class="tarot-card-meaning" id="tarot-meaning">MANIFESTACIÓN</span>
+            </div>
+            <div class="tarot-card-desc" id="tarot-desc">Canalizas las infinitas posibilidades del algoritmo.</div>
+            <div class="tarot-dismiss-hint">TOCA PARA REVELAR DESTINO</div>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -2,6 +2,8 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +39,9 @@ fun ConfigDialog(
     val isConnected by viewModel.isConnected.collectAsState()
     val isConnecting by viewModel.isConnecting.collectAsState()
 
+    var clickCount by remember { mutableStateOf(0) }
+    var showAdvanced by remember { mutableStateOf(false) }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -71,7 +76,18 @@ fun ConfigDialog(
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            clickCount++
+                            if (clickCount >= 5) {
+                                showAdvanced = !showAdvanced
+                                clickCount = 0
+                            }
+                        }
                 )
 
                 Column(
@@ -141,44 +157,46 @@ fun ConfigDialog(
                         )
                     }
 
-                    OutlinedTextField(
-                        value = geminiApiKey,
-                        onValueChange = { viewModel.updateGeminiApiKey(it) },
-                        label = { Text("Gemini AI API Key (v1beta)", color = Color.White.copy(alpha = 0.7f)) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
-                        ),
-                        placeholder = { Text("Pega tu API Key de Google AI Studio", color = Color.White.copy(alpha = 0.3f)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (showAdvanced) {
+                        OutlinedTextField(
+                            value = geminiApiKey,
+                            onValueChange = { viewModel.updateGeminiApiKey(it) },
+                            label = { Text("Gemini AI API Key (v1beta)", color = Color.White.copy(alpha = 0.7f)) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
+                            ),
+                            placeholder = { Text("Pega tu API Key de Google AI Studio", color = Color.White.copy(alpha = 0.3f)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    OutlinedTextField(
-                        value = systemPrompt,
-                        onValueChange = { viewModel.updateSystemPrompt(it) },
-                        label = { Text("System Prompt (Personalidad de Oráculo)", color = Color.White.copy(alpha = 0.7f)) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3, maxLines = 5
-                    )
-                    
-                    // TTS settings
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.02f))
-                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                            .padding(12.dp)
-                    ) {
-                        Text("Tono de Voz", color = Color.White, fontSize = 12.sp)
-                        Slider(value = ttsPitch, onValueChange = { viewModel.updateTtsPitch(it) }, valueRange = 0.3f..1.8f)
+                        OutlinedTextField(
+                            value = systemPrompt,
+                            onValueChange = { viewModel.updateSystemPrompt(it) },
+                            label = { Text("System Prompt (Personalidad de Oráculo)", color = Color.White.copy(alpha = 0.7f)) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3, maxLines = 5
+                        )
                         
-                        Text("Velocidad", color = Color.White, fontSize = 12.sp)
-                        Slider(value = ttsSpeed, onValueChange = { viewModel.updateTtsSpeed(it) }, valueRange = 0.3f..1.8f)
+                        // TTS settings
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.02f))
+                                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text("Tono de Voz", color = Color.White, fontSize = 12.sp)
+                            Slider(value = ttsPitch, onValueChange = { viewModel.updateTtsPitch(it) }, valueRange = 0.3f..1.8f)
+                            
+                            Text("Velocidad", color = Color.White, fontSize = 12.sp)
+                            Slider(value = ttsSpeed, onValueChange = { viewModel.updateTtsSpeed(it) }, valueRange = 0.3f..1.8f)
+                        }
                     }
                     
                     // Logs Monitor Area

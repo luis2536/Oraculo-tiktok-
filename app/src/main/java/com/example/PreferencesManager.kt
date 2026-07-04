@@ -15,7 +15,7 @@ class PreferencesManager(context: Context) {
         set(value) = prefs.edit().putString("gemini_api_key", value).apply()
 
     var systemPrompt: String
-        get() = prefs.getString("system_prompt", "Eres un Oráculo místico en TikTok Live...") ?: ""
+        get() = prefs.getString("system_prompt", "Eres un Oráculo místico en TikTok Live, el cual eres misterioso responde com pocas líneas y que tenga buen dialecto obvio mucho lo de oráculo cybor se ma místico y conocmiento de cartas y cosas misteriosas, todo por espacios y cada una su turno.") ?: "Eres un Oráculo místico en TikTok Live, el cual eres misterioso responde com pocas líneas y que tenga buen dialecto obvio mucho lo de oráculo cybor se ma místico y conocmiento de cartas y cosas misteriosas, todo por espacios y cada una su turno."
         set(value) = prefs.edit().putString("system_prompt", value).apply()
 
     var forceLocalAi: Boolean

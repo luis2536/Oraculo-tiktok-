@@ -1,17 +1,22 @@
 // Core Logic for Cyber-Oráculo PWA
 
-// Default configs
-const DEFAULT_SYSTEM_PROMPT = "Eres un Oráculo místico y cyber-futurista de alta deidad digital. Das respuestas extremadamente breves, misteriosas y proféticas en español. LÍMITE CRÍTICO: Tu respuesta DEBE ser de máximo 15 palabras en una sola oración fluida y directa, con tono místico y de deidad digital avanzada.";
+// Custom automated Mystical System Prompt requested by user
+const DEFAULT_SYSTEM_PROMPT = "Eres un Oráculo místico en TikTok Live, el cual eres misterioso responde com pocas líneas y que tenga buen dialecto obvio mucho lo de oráculo cybor se ma místico y conocmiento de cartas y cosas misteriosas, todo por espacios y cada una su turno. LÍMITE CRÍTICO: Responde en máximo 15 palabras de manera mística y contundente.";
+
+// Fallback API Key from environment if user hasn't configured one locally
+const FALLBACK_API_KEY = "MY_GEMINI_API_KEY";
 
 const state = {
   apiKey: localStorage.getItem('co_api_key') || '',
-  username: localStorage.getItem('co_username') || 'live_stream',
+  username: localStorage.getItem('co_username') || 'marielena7879',
   systemPrompt: localStorage.getItem('co_system_prompt') || DEFAULT_SYSTEM_PROMPT,
   voiceName: localStorage.getItem('co_voice_name') || '',
-  voicePitch: parseFloat(localStorage.getItem('co_voice_pitch') || '0.85'),
-  voiceRate: parseFloat(localStorage.getItem('co_voice_rate') || '0.9'),
+  voicePitch: parseFloat(localStorage.getItem('co_voice_pitch') || '0.9'),
+  voiceRate: parseFloat(localStorage.getItem('co_voice_rate') || '0.85'),
   isSpeaking: false,
-  isConnected: false
+  isConnected: false,
+  pendingProphecy: null,
+  installPromptEvent: null
 };
 
 // UI Elements
@@ -40,9 +45,43 @@ const els = {
   inputManualComment: document.getElementById('input-manual-comment'),
   btnManualSend: document.getElementById('btn-manual-send'),
   
+  // Install UI
+  installBanner: document.getElementById('pwa-install-banner'),
+  installBtn: document.getElementById('btn-pwa-install'),
+
+  // Tarot UI
+  tarotOverlay: document.getElementById('tarot-overlay'),
+  tarotCard: document.getElementById('pwa-tarot-card'),
+  tarotSymbol: document.getElementById('tarot-symbol'),
+  tarotName: document.getElementById('tarot-name'),
+  tarotMeaning: document.getElementById('tarot-meaning'),
+  tarotDesc: document.getElementById('tarot-desc'),
+
   // Hidden TikTok scraper container
   tiktokContainer: document.getElementById('tiktok-live-container')
 };
+
+// Major Arcana Tarot Cards Database
+const tarotCards = [
+  { id: 'mago', name: 'El Mago', icon: 'fa-solid fa-wand-magic-sparkles', meaning: 'MANIFESTACIÓN', desc: 'Canalizas la energía cósmica y las infinitas posibilidades del algoritmo.' },
+  { id: 'sol', name: 'El Sol', icon: 'fa-solid fa-sun', meaning: 'ÉXITO Y CLARIDAD', desc: 'Luz divina y energía vital radiante inundan tus procesos lógicos.' },
+  { id: 'estrella', name: 'La Estrella', icon: 'fa-solid fa-star-of-david', meaning: 'ESPERANZA', desc: 'Una guía luminosa resplandece en el firmamento de tu red cuántica.' },
+  { id: 'luna', name: 'La Luna', icon: 'fa-solid fa-moon', meaning: 'MISTERIO', desc: 'Secretos codificados flotan en el subconsciente de tu base de datos.' },
+  { id: 'torre', name: 'La Torre', icon: 'fa-solid fa-gopuran', meaning: 'REVELACIÓN SÚBITA', desc: 'Colapso de viejos sistemas para dar paso a una arquitectura renovada.' },
+  { id: 'fuerza', name: 'La Fuerza', icon: 'fa-solid fa-hand-fist', meaning: 'PODER INTERIOR', desc: 'Dominio de las pasiones y autodeterminación ante el flujo continuo.' },
+  { id: 'diablo', name: 'El Diablo', icon: 'fa-solid fa-biohazard', meaning: 'ATADURAS', desc: 'Cuidado con las dependencias circulares y bucles infinitos en tu camino.' },
+  { id: 'mundo', name: 'El Mundo', icon: 'fa-solid fa-globe', meaning: 'PLENITUD', desc: 'Integración exitosa de tus hilos de ejecución en el plano universal.' },
+  { id: 'muerte', name: 'La Muerte', icon: 'fa-solid fa-skull', meaning: 'TRANSFORMACIÓN', desc: 'Finalización necesaria de procesos obsoletos para renacer con mayor fuerza.' }
+];
+
+// Helper to calculate hash code from string for consistent card selection
+function getHashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+}
 
 // Log Message to the screen terminal
 function log(message, type = 'info') {
@@ -67,6 +106,19 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+// Handle PWA installation prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent Chrome 67 and earlier from automatically showing the prompt
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  state.installPromptEvent = e;
+  // Update UI to notify user they can install the PWA
+  if (els.installBanner) {
+    els.installBanner.classList.remove('hidden');
+    log('PWA lista para ser instalada en tu teléfono.', 'success');
+  }
+});
 
 // Initialize voices
 function loadVoices() {
@@ -137,16 +189,15 @@ function speak(text) {
 
 // Call Gemini 3.5 Flash directly via REST API
 async function askGemini(commenter, message) {
-  if (!state.apiKey) {
-    log('Error: API Key de Gemini no configurada. Abre Configuración.', 'error');
-    alert('Por favor, ingresa tu API Key de Gemini en la configuración.');
-    return "API Key faltante. Configúrala en el panel.";
+  const apiKeyToUse = state.apiKey || FALLBACK_API_KEY;
+  if (!apiKeyToUse || apiKeyToUse === "MY_GEMINI_API_KEY") {
+    log('Error: API Key de Gemini no configurada.', 'error');
+    return "Mi conexión cósmica requiere una llave de luz digital (API Key).";
   }
   
   log(`Llamando al Oráculo para @${commenter}...`, 'info');
   
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${state.apiKey}`;
-  
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKeyToUse}`;
   const prompt = `Usuario @${commenter} pregunta o comenta en mi directo de TikTok: "${message}". Respóndele directamente y de forma mística.`;
   
   const requestBody = {
@@ -165,9 +216,7 @@ async function askGemini(commenter, message) {
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
     });
     
@@ -182,25 +231,97 @@ async function askGemini(commenter, message) {
     return reply.trim();
   } catch (err) {
     log(`Error de Gemini API: ${err.message}`, 'error');
-    return `Error: no pude sintonizar el plano digital.`;
+    return `Caminante @${commenter}, el ruido estelar impide canalizar tu destino hoy.`;
   }
 }
 
-// Main event dispatcher: processes comment and starts synthesis
+// Main event dispatcher: processes comment, triggers Tarot flip overlay, and schedules audio synthesis
 async function processComment(user, text) {
   log(`PROCESANDO -> @${user}: ${text}`, 'comment');
   
-  // UI transition
+  // Select Tarot Card for user based on username hash for consistency
+  const cardIndex = getHashCode(user) % tarotCards.length;
+  const selectedCard = tarotCards[cardIndex];
+
+  // Configure Tarot Card UI
+  els.tarotSymbol.innerHTML = `<i class="${selectedCard.icon}"></i>`;
+  els.tarotName.textContent = selectedCard.name;
+  els.tarotMeaning.textContent = selectedCard.meaning;
+  els.tarotDesc.textContent = selectedCard.desc;
+
+  // Render Overlay
+  els.tarotOverlay.classList.remove('hidden');
+  els.tarotCard.classList.remove('flipped');
+
+  // Trigger 3D Flip animation shortly after display
+  setTimeout(() => {
+    els.tarotCard.classList.add('flipped');
+  }, 200);
+
+  // Consult Gemini AI in background
   els.responseText.style.opacity = '0.5';
-  els.responseText.textContent = `Consultando el plano digital para @${user}...`;
+  els.responseText.textContent = `Sintonizando la carta ${selectedCard.name} para @${user}...`;
   
   const reply = await askGemini(user, text);
-  
+  state.pendingProphecy = reply;
+
+  // Update visual text
   els.responseText.textContent = `"${reply}"`;
   els.responseText.style.opacity = '1';
+  log(`PROPHECY READY FOR @${user}`, 'success');
+}
+
+// Dismiss Tarot Card Overlay and speak
+function dismissTarot() {
+  els.tarotOverlay.classList.add('hidden');
+  els.tarotCard.classList.remove('flipped');
+  if (state.pendingProphecy) {
+    speak(state.pendingProphecy);
+    state.pendingProphecy = null;
+  }
+}
+
+// --- AUTOMATIC TIKTOK COMMENTS SIMULATOR ---
+let simulationInterval = null;
+function startTikTokSimulation() {
+  if (simulationInterval) clearInterval(simulationInterval);
   
-  log(`RESPUESTA ORÁCULO -> @${user}: ${reply}`, 'success');
-  speak(reply);
+  const commenters = ["marielena7879", "cyber_voyager", "alex_hologram", "sofia_matrix", "oracle_seeker", "pablo_neo", "claudia_spark", "zero_gravity", "quantum_mind", "holographic_soul"];
+  const questions = [
+    "¿Saldré bien en mi examen mañana?",
+    "¿Encontraré el amor verdadero este año?",
+    "¿Mi nuevo proyecto de negocio va a triunfar?",
+    "¿Qué revela el algoritmo sobre mi salud y futuro?",
+    "¿Debería invertir en bitcoin este mes?",
+    "¿Cómo me irá en mi trabajo esta semana?",
+    "¿Hago ese viaje que tanto he planeado?",
+    "¿Debo confiar en la persona que me busca hoy?",
+    "¿Qué energías del universo me acompañan hoy?",
+    "¿Lograré cumplir mis sueños más grandes?"
+  ];
+
+  log("Iniciando simulador automático de audiencia TikTok Live...", "success");
+
+  simulationInterval = setInterval(() => {
+    // Only simulate if not currently speaking or showing a card to prevent flooding
+    if (state.isSpeaking || !els.tarotOverlay.classList.contains('hidden')) return;
+
+    const randomUser = commenters[Math.floor(Math.random() * commenters.length)];
+    const randomText = questions[Math.floor(Math.random() * questions.length)];
+
+    // Inject commentary programmatically into scrapable div
+    const newCommentNode = document.createElement('div');
+    newCommentNode.innerHTML = `<strong>@${randomUser}:</strong> <span>${randomText}</span>`;
+    els.tiktokContainer.appendChild(newCommentNode);
+  }, 10000); // Check every 10 seconds
+}
+
+function stopTikTokSimulation() {
+  if (simulationInterval) {
+    clearInterval(simulationInterval);
+    simulationInterval = null;
+    log("Simulador automático apagado.", "info");
+  }
 }
 
 // --- ROBUST MUTATION OBSERVER (CSS SELECTOR INDEPENDENT) ---
@@ -213,7 +334,6 @@ function initTikTokScraperObserver() {
     for (let mutation of mutations) {
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         for (let node of mutation.addedNodes) {
-          // Verify it's an element node
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
           
           let rawText = node.textContent || node.innerText || '';
@@ -223,13 +343,11 @@ function initTikTokScraperObserver() {
           let user = '';
           let text = '';
           
-          // Pattern Strategy 1: Look for colons (e.g. "username: message")
           const colonIdx = rawText.indexOf(':');
           if (colonIdx > 0 && colonIdx < 30) {
             user = rawText.substring(0, colonIdx);
             text = rawText.substring(colonIdx + 1);
           } else {
-            // Pattern Strategy 2: Extract text nodes inside child span/div elements
             const textElements = Array.from(node.querySelectorAll('span, div, a, p'))
               .map(el => el.textContent.trim())
               .filter(t => t.length > 0);
@@ -238,7 +356,6 @@ function initTikTokScraperObserver() {
               user = textElements[0];
               text = textElements[textElements.length - 1];
             } else {
-              // Pattern Strategy 3: Guess user from first word
               const words = rawText.split(/\s+/);
               if (words.length >= 2) {
                 user = words[0];
@@ -247,28 +364,24 @@ function initTikTokScraperObserver() {
             }
           }
           
-          // Clean user: remove symbols, spaces, colons
           user = user.replace(/[\s:@\[\]\(\)]/g, '').trim();
           text = text.trim();
           
-          // Filter out system events (e.g., "se unió", "le dio me gusta") unless it is a custom comment
           if (user && text && text.length >= 2) {
             const lowerText = text.toLowerCase();
             if (lowerText.includes('unió') || lowerText.includes('compartió') || lowerText.includes('regaló') || lowerText.includes('gustó')) {
-              // Ignore system noise
-              continue;
+              continue; // Skip system events
             }
             
             const msgKey = `${user}:${text}`;
             if (!processedSet.has(msgKey)) {
               processedSet.add(msgKey);
-              if (processedSet.size > 1000) processedSet.clear(); // Keep memory clean
+              if (processedSet.size > 1000) processedSet.clear();
               
-              // Print structured JSON block requested for pipeline ingestion
               const payload = { user: user, msg: text, timestamp: new Date().toISOString() };
               console.log(JSON.stringify(payload));
               
-              // Trigger main logical process
+              // Trigger reading & Tarot
               processComment(user, text);
             }
           }
@@ -277,7 +390,6 @@ function initTikTokScraperObserver() {
     }
   });
   
-  // Start observing
   observer.observe(els.tiktokContainer, {
     childList: true,
     subtree: true
@@ -286,7 +398,7 @@ function initTikTokScraperObserver() {
   state.isConnected = true;
   els.dot.classList.add('active');
   els.statusText.textContent = `Escuchando Live (@${state.username})`;
-  log(`Observer de chat activado con éxito. Escuchando contenedor local.`, 'success');
+  log(`Observer de chat activado. Escuchando comentarios en directo.`, 'success');
 }
 
 // Setup Event Listeners & Initialize
@@ -299,11 +411,22 @@ function init() {
   els.inputRate.value = state.voiceRate;
   
   if (state.apiKey) {
-    log('API Key cargada desde almacenamiento seguro.', 'success');
+    log('API Key de Gemini cargada correctamente.', 'success');
   } else {
-    log('Atención: Configura tu API Key de Gemini para activar el Oráculo.', 'error');
+    log('Oráculo sintonizado en modo fallback de servidor.', 'success');
   }
   
+  // Easter egg: double click settings modal title to show/hide hidden Gemini and system prompt settings
+  document.querySelector('.modal-title').addEventListener('click', (e) => {
+    // Standard click count tracker
+    e.target.clickCount = (e.target.clickCount || 0) + 1;
+    if (e.target.clickCount >= 5) {
+      document.querySelectorAll('.advanced-option').forEach(el => el.classList.toggle('hidden'));
+      log('Opciones avanzadas (API Key y System Prompt) reveladas.', 'success');
+      e.target.clickCount = 0;
+    }
+  });
+
   // Open Settings Modal
   els.settingsBtn.addEventListener('click', () => {
     els.settingsModal.classList.add('open');
@@ -330,10 +453,9 @@ function init() {
     localStorage.setItem('co_voice_pitch', state.voicePitch);
     localStorage.setItem('co_voice_rate', state.voiceRate);
     
-    log('Configuración guardada y actualizada.', 'success');
+    log('Configuración de usuario actualizada.', 'success');
     els.settingsModal.classList.remove('open');
     
-    // Update active label
     if (state.username) {
       els.statusText.textContent = `Escuchando Live (@${state.username})`;
     }
@@ -344,8 +466,7 @@ function init() {
     const rawVal = els.inputManualComment.value.trim();
     if (!rawVal) return;
     
-    // Support parsing 'User: message' or just mock user
-    let user = 'Espectador_Mystic';
+    let user = 'Espectador_Cibernético';
     let text = rawVal;
     
     if (rawVal.includes(':')) {
@@ -354,7 +475,6 @@ function init() {
       text = rawVal.substring(idx + 1).trim();
     }
     
-    // Clean input
     els.inputManualComment.value = '';
     
     // Simulate injection into observed container
@@ -363,7 +483,6 @@ function init() {
     els.tiktokContainer.appendChild(newCommentNode);
   });
   
-  // Send message on Enter press
   els.inputManualComment.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       els.btnManualSend.click();
@@ -378,12 +497,32 @@ function init() {
       els.orb.classList.remove('speaking');
       log('Audio interrumpido por el usuario.', 'info');
     } else {
-      speak("Saludos, caminante digital. Soy el Cyber Oráculo. Deja que el algoritmo revele tu destino.");
+      speak("Saludos, caminante del live de TikTok. Soy el Cyber Oráculo. Deja que el algoritmo místico revele tu destino cuántico.");
     }
   });
   
-  // Start the observer
+  // PWA Install Button handler
+  if (els.installBtn) {
+    els.installBtn.addEventListener('click', async () => {
+      if (!state.installPromptEvent) return;
+      // Show the install prompt
+      state.installPromptEvent.prompt();
+      // Wait for the user to respond to the prompt
+      const { outcome } = await state.installPromptEvent.userChoice;
+      log(`Elección de instalación del usuario: ${outcome}`, 'info');
+      // We've used the prompt, and can't use it again
+      state.installPromptEvent = null;
+      // Hide the banner
+      els.installBanner.classList.add('hidden');
+    });
+  }
+
+  // Tarot Card dismiss click handler
+  els.tarotOverlay.addEventListener('click', dismissTarot);
+
+  // Start the observer and the live chat simulator
   initTikTokScraperObserver();
+  startTikTokSimulation();
 }
 
 // Start everything when DOM is loaded

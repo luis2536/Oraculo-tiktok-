@@ -61,7 +61,7 @@ fun ManualAskDialog(
                     Button(
                         onClick = { 
                             if (question.isNotBlank()) {
-                                viewModel.manualAsk(question, name)
+                                viewModel.manualAsk(username = name, question = question)
                                 onDismiss()
                             }
                         },

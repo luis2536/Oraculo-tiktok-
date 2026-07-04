@@ -197,7 +197,8 @@ class OracleViewModel(application: Application) : AndroidViewModel(application),
     }
 
     private fun generateProphecy(username: String, message: String) {
-        if (_geminiApiKey.value.isBlank()) {
+        val apiKey = if (_geminiApiKey.value.isNotBlank()) _geminiApiKey.value else BuildConfig.GEMINI_API_KEY
+        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
             _errorFlow.value = "Gemini API Key no configurada."
             addLog("Error: Gemini API Key vacía.")
             return
@@ -207,10 +208,15 @@ class OracleViewModel(application: Application) : AndroidViewModel(application),
             try {
                 addLog("Generando profecía local para: @$username")
                 val reply = geminiService.generateResponse(
-                    customApiKey = _geminiApiKey.value,
+                    customApiKey = apiKey,
                     systemPrompt = _systemPrompt.value,
                     prompt = message
                 )
+                
+                // Seleccionar y voltear la carta del Tarot correspondiente
+                val card = selectTarotCardForUser(username)
+                _currentTarotCard.value = card
+                _isTarotFlipped.value = true
                 
                 // Actualizar UI
                 _currentResponse.value = Pair(username, reply)
@@ -257,6 +263,94 @@ class OracleViewModel(application: Application) : AndroidViewModel(application),
             delay(500)
             _currentTarotCard.value = null
         }
+    }
+    
+    private fun selectTarotCardForUser(username: String): TarotCard {
+        val list = listOf(
+            TarotCard(
+                id = "mago",
+                name = "El Mago",
+                mainColorHex = "#00f0ff",
+                secondaryColorHex = "#bd00ff",
+                runicSymbolName = "mago",
+                meaning = "MANIFESTACIÓN",
+                description = "Canalizas la energía cósmica y las infinitas posibilidades del algoritmo."
+            ),
+            TarotCard(
+                id = "sol",
+                name = "El Sol",
+                mainColorHex = "#ffaa00",
+                secondaryColorHex = "#ff3300",
+                runicSymbolName = "sol",
+                meaning = "ÉXITO Y CLARIDAD",
+                description = "Luz divina y energía vital radiante inundan tus procesos lógicos."
+            ),
+            TarotCard(
+                id = "estrella",
+                name = "La Estrella",
+                mainColorHex = "#00ffcc",
+                secondaryColorHex = "#0066ff",
+                runicSymbolName = "estrella",
+                meaning = "ESPERANZA",
+                description = "Una guía luminosa resplandece en el firmamento de tu red cuántica."
+            ),
+            TarotCard(
+                id = "luna",
+                name = "La Luna",
+                mainColorHex = "#a0a0ff",
+                secondaryColorHex = "#5000aa",
+                runicSymbolName = "luna",
+                meaning = "MISTERIO",
+                description = "Secretos codificados flotan en el subconsciente de tu base de datos."
+            ),
+            TarotCard(
+                id = "torre",
+                name = "La Torre",
+                mainColorHex = "#ff3333",
+                secondaryColorHex = "#990000",
+                runicSymbolName = "torre",
+                meaning = "REVELACIÓN SÚBITA",
+                description = "Colapso de viejos sistemas para dar paso a una arquitectura renovada."
+            ),
+            TarotCard(
+                id = "fuerza",
+                name = "La Fuerza",
+                mainColorHex = "#39ff14",
+                secondaryColorHex = "#00aa00",
+                runicSymbolName = "fuerza",
+                meaning = "PODER INTERIOR",
+                description = "Dominio de las pasiones y autodeterminación ante el flujo continuo."
+            ),
+            TarotCard(
+                id = "diablo",
+                name = "El Diablo",
+                mainColorHex = "#ff0055",
+                secondaryColorHex = "#550011",
+                runicSymbolName = "diablo",
+                meaning = "ATADURAS",
+                description = "Cuidado con las dependencias circulares y bucles infinitos en tu camino."
+            ),
+            TarotCard(
+                id = "mundo",
+                name = "El Mundo",
+                mainColorHex = "#bd00ff",
+                secondaryColorHex = "#00f0ff",
+                runicSymbolName = "mundo",
+                meaning = "PLENITUD",
+                description = "Integración exitosa de tus hilos de ejecución en el plano universal."
+            ),
+            TarotCard(
+                id = "muerte",
+                name = "La Muerte",
+                mainColorHex = "#888888",
+                secondaryColorHex = "#222222",
+                runicSymbolName = "muerte",
+                meaning = "TRANSFORMACIÓN",
+                description = "Finalización necesaria de procesos obsoletos para renacer con mayor fuerza."
+            )
+        )
+        val hash = username.hashCode().let { if (it == Int.MIN_VALUE) 0 else kotlin.math.abs(it) }
+        return list[hash % list.size]
     }
     
     override fun onCleared() {
