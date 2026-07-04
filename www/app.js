@@ -16,8 +16,101 @@ const state = {
   isSpeaking: false,
   isConnected: false,
   pendingProphecy: null,
-  installPromptEvent: null
+  installPromptEvent: null,
+  isSimulationEnabled: localStorage.getItem('co_simulation_enabled') !== 'false',
+  isProcessingQueue: false
 };
+
+// Global FIFO Queue
+const commentQueue = [];
+
+// High-Fidelity Synthesized Web Audio System (Self-Contained)
+class SoundSystem {
+  constructor() {
+    this.ctx = null;
+  }
+  init() {
+    if (this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      console.warn("Web Audio API no soportada.", e);
+    }
+  }
+  playPortal() {
+    this.init();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(130, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(780, this.ctx.currentTime + 1.2);
+    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 1.2);
+  }
+  playChime() {
+    this.init();
+    if (!this.ctx) return;
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+    osc1.frequency.exponentialRampToValueAtTime(1046.50, this.ctx.currentTime + 0.8);
+    
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(659.25, this.ctx.currentTime); // E5
+    osc2.frequency.exponentialRampToValueAtTime(1318.51, this.ctx.currentTime + 0.8);
+    
+    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.8);
+    
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc1.start();
+    osc2.start();
+    osc1.stop(this.ctx.currentTime + 0.8);
+    osc2.stop(this.ctx.currentTime + 0.8);
+  }
+  playSwoosh() {
+    this.init();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(35, this.ctx.currentTime + 0.55);
+    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.55);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.55);
+  }
+  playSuccess() {
+    this.init();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+    osc.frequency.setValueAtTime(880, this.ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.4);
+  }
+}
+const sounds = new SoundSystem();
 
 // UI Elements
 const els = {
@@ -40,6 +133,7 @@ const els = {
   selectVoice: document.getElementById('select-voice'),
   inputPitch: document.getElementById('input-pitch'),
   inputRate: document.getElementById('input-rate'),
+  checkboxSimulation: document.getElementById('checkbox-simulation'),
   
   // Manual Interaction
   inputManualComment: document.getElementById('input-manual-comment'),
@@ -58,7 +152,12 @@ const els = {
   tarotDesc: document.getElementById('tarot-desc'),
 
   // Hidden TikTok scraper container
-  tiktokContainer: document.getElementById('tiktok-live-container')
+  tiktokContainer: document.getElementById('tiktok-live-container'),
+
+  // Queue Panel Elements Precisely matching index.html
+  queueList: document.getElementById('queue-list'),
+  chatLiveList: document.getElementById('chat-live-list'),
+  queueCount: document.getElementById('queue-count')
 };
 
 // Major Arcana Tarot Cards Database
@@ -146,45 +245,49 @@ if (typeof speechSynthesis !== 'undefined') {
   loadVoices();
 }
 
-// Speak response with Cyber/Mystical TTS tuning
-function speak(text) {
-  if (typeof speechSynthesis === 'undefined') {
-    log('Web Speech TTS no soportado en este dispositivo.', 'error');
-    return;
-  }
-  
-  speechSynthesis.cancel(); // Stop any current speech
-  
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'es-MX';
-  
-  // Set preferred voice if saved
-  if (state.voiceName) {
-    const voices = speechSynthesis.getVoices();
-    const selectedVoice = voices.find(v => v.name === state.voiceName);
-    if (selectedVoice) utterance.voice = selectedVoice;
-  }
-  
-  utterance.pitch = state.voicePitch; // Cyber/deep pitch
-  utterance.rate = state.voiceRate;   // Mystic/slow rate
-  
-  utterance.onstart = () => {
-    state.isSpeaking = true;
-    els.orb.classList.add('speaking');
-  };
-  
-  utterance.onend = () => {
-    state.isSpeaking = false;
-    els.orb.classList.remove('speaking');
-  };
-  
-  utterance.onerror = (e) => {
-    state.isSpeaking = false;
-    els.orb.classList.remove('speaking');
-    log('Error de TTS: ' + e.error, 'error');
-  };
-  
-  speechSynthesis.speak(utterance);
+// Speak response with Cyber/Mystical TTS tuning (Promise-based)
+function speakAsync(text) {
+  return new Promise((resolve) => {
+    if (typeof speechSynthesis === 'undefined') {
+      log('Web Speech TTS no soportado en este dispositivo.', 'error');
+      resolve();
+      return;
+    }
+    
+    speechSynthesis.cancel(); // Stop current speech
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-MX';
+    
+    // Set preferred voice if saved
+    if (state.voiceName) {
+      const voices = speechSynthesis.getVoices();
+      const selectedVoice = voices.find(v => v.name === state.voiceName);
+      if (selectedVoice) utterance.voice = selectedVoice;
+    }
+    
+    utterance.pitch = state.voicePitch; // Cyber/deep pitch
+    utterance.rate = state.voiceRate;   // Mystic/slow rate
+    
+    utterance.onstart = () => {
+      state.isSpeaking = true;
+      els.orb.classList.add('speaking');
+    };
+    
+    const finishSpeech = () => {
+      state.isSpeaking = false;
+      els.orb.classList.remove('speaking');
+      resolve();
+    };
+    
+    utterance.onend = finishSpeech;
+    utterance.onerror = (e) => {
+      log('Error de TTS: ' + e.error, 'error');
+      finishSpeech();
+    };
+    
+    speechSynthesis.speak(utterance);
+  });
 }
 
 // Call Gemini 3.5 Flash directly via REST API
@@ -235,49 +338,188 @@ async function askGemini(commenter, message) {
   }
 }
 
-// Main event dispatcher: processes comment, triggers Tarot flip overlay, and schedules audio synthesis
-async function processComment(user, text) {
-  log(`PROCESANDO -> @${user}: ${text}`, 'comment');
+// Helpers for visual queue rendering precisely matching Image 15 layout
+function addCommentToLiveFeed(user, text) {
+  if (!els.chatLiveList) return;
   
-  // Select Tarot Card for user based on username hash for consistency
-  const cardIndex = getHashCode(user) % tarotCards.length;
-  const selectedCard = tarotCards[cardIndex];
-
-  // Configure Tarot Card UI
-  els.tarotSymbol.innerHTML = `<i class="${selectedCard.icon}"></i>`;
-  els.tarotName.textContent = selectedCard.name;
-  els.tarotMeaning.textContent = selectedCard.meaning;
-  els.tarotDesc.textContent = selectedCard.desc;
-
-  // Render Overlay
-  els.tarotOverlay.classList.remove('hidden');
-  els.tarotCard.classList.remove('flipped');
-
-  // Trigger 3D Flip animation shortly after display
-  setTimeout(() => {
-    els.tarotCard.classList.add('flipped');
-  }, 200);
-
-  // Consult Gemini AI in background
-  els.responseText.style.opacity = '0.5';
-  els.responseText.textContent = `Sintonizando la carta ${selectedCard.name} para @${user}...`;
+  const placeholder = els.chatLiveList.querySelector('.empty-list-placeholder');
+  if (placeholder) placeholder.remove();
   
-  const reply = await askGemini(user, text);
-  state.pendingProphecy = reply;
+  const item = document.createElement('div');
+  item.className = 'chat-item';
+  item.innerHTML = `<span class="chat-user">@${user}:</span><span class="chat-text">${text}</span>`;
+  
+  els.chatLiveList.appendChild(item);
+  els.chatLiveList.scrollTop = els.chatLiveList.scrollHeight;
+  
+  while (els.chatLiveList.children.length > 20) {
+    els.chatLiveList.removeChild(els.chatLiveList.firstChild);
+  }
+}
 
-  // Update visual text
-  els.responseText.textContent = `"${reply}"`;
-  els.responseText.style.opacity = '1';
-  log(`PROPHECY READY FOR @${user}`, 'success');
+function updateQueueUI() {
+  if (!els.queueList) return;
+  
+  els.queueCount.textContent = commentQueue.length;
+  
+  if (commentQueue.length === 0) {
+    els.queueList.innerHTML = `<div class="empty-list-placeholder">Cola vacía<br><small>Esperando preguntas...</small></div>`;
+    return;
+  }
+  
+  els.queueList.innerHTML = '';
+  commentQueue.forEach((item, index) => {
+    const queueElement = document.createElement('div');
+    queueElement.className = 'queue-item';
+    
+    const isHead = index === 0 && state.isProcessingQueue;
+    const statusClass = isHead ? 'processing' : 'waiting';
+    const statusText = isHead ? 'Sintonizando' : `Turno #${index + 1}`;
+    
+    queueElement.innerHTML = `
+      <div class="queue-user-info">
+        <span class="queue-username">@${item.user}</span>
+        <span class="queue-text">${item.text}</span>
+      </div>
+      <span class="queue-status ${statusClass}">${statusText}</span>
+    `;
+    els.queueList.appendChild(queueElement);
+  });
+}
+
+function updateConnectionState(status) {
+  if (!els.dot || !els.statusText) return;
+  
+  els.dot.className = 'dot';
+  
+  if (status === 'disconnected') {
+    els.dot.classList.add('disconnected');
+    els.statusText.textContent = 'Desconectado';
+  } else if (status === 'listening') {
+    els.dot.classList.add('listening');
+    els.statusText.textContent = `Escuchando Live (@${state.username})`;
+  } else if (status === 'connected') {
+    els.dot.classList.add('connected');
+    els.statusText.textContent = `Conectado al I (@${state.username})`;
+  }
+}
+
+// Global queue processor executing comments progressively
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function processQueue() {
+  if (state.isProcessingQueue) return;
+  state.isProcessingQueue = true;
+  
+  while (commentQueue.length > 0) {
+    const activeComment = commentQueue[0];
+    updateQueueUI();
+    
+    // Switch connection indicator to GREEN
+    updateConnectionState('connected');
+    
+    try {
+      // Processes sensing & speaks
+      await startOracularSensing(activeComment.user, activeComment.text);
+    } catch (err) {
+      log(`Error en cola de procesamiento: ${err.message}`, 'error');
+    }
+    
+    commentQueue.shift();
+    updateQueueUI();
+    
+    // Safety delay to prevent Gemini quota exceed rate limit errors
+    updateConnectionState('listening');
+    await sleep(4000); // 4 seconds cool-down between comments
+  }
+  
+  state.isProcessingQueue = false;
+  updateConnectionState('listening');
+}
+
+let resolveSensingPromise = null;
+let tarotTimeout = null;
+
+async function startOracularSensing(user, text) {
+  return new Promise(async (resolve) => {
+    resolveSensingPromise = resolve;
+    log(`CANALIZANDO -> @${user}: "${text}"`, 'comment');
+    
+    // Play celestial portal sound
+    sounds.playPortal();
+    
+    const cardIndex = getHashCode(user) % tarotCards.length;
+    const selectedCard = tarotCards[cardIndex];
+  
+    // Configure Tarot Card UI
+    els.tarotSymbol.innerHTML = `<i class="${selectedCard.icon}"></i>`;
+    els.tarotName.textContent = selectedCard.name;
+    els.tarotMeaning.textContent = selectedCard.meaning;
+    els.tarotDesc.textContent = selectedCard.desc;
+  
+    // Render Overlay
+    els.tarotOverlay.classList.remove('hidden');
+    els.tarotCard.classList.remove('flipped');
+    
+    // Play card flip swoosh sound!
+    sounds.playSwoosh();
+  
+    // Trigger 3D Flip animation shortly after display
+    setTimeout(() => {
+      els.tarotCard.classList.add('flipped');
+    }, 200);
+  
+    // Consult Gemini AI in background
+    els.responseText.style.opacity = '0.5';
+    els.responseText.textContent = `Sintonizando la carta ${selectedCard.name} para @${user}...`;
+    
+    const reply = await askGemini(user, text);
+    state.pendingProphecy = reply;
+  
+    // Update visual text
+    els.responseText.textContent = `"${reply}"`;
+    els.responseText.style.opacity = '1';
+    log(`PROPHECY READY FOR @${user}`, 'success');
+    
+    // Play success chime
+    sounds.playSuccess();
+    
+    // Set auto-dismiss timeout to keep stream flowing automatically
+    if (tarotTimeout) clearTimeout(tarotTimeout);
+    tarotTimeout = setTimeout(() => {
+      dismissTarot();
+    }, 8000); // Display tarot card for 8 seconds
+  });
+}
+
+// Entry point for comments scraped or simulated
+function processComment(user, text) {
+  addCommentToLiveFeed(user, text);
+  commentQueue.push({ user, text });
+  updateQueueUI();
+  processQueue();
 }
 
 // Dismiss Tarot Card Overlay and speak
-function dismissTarot() {
+async function dismissTarot() {
+  if (tarotTimeout) {
+    clearTimeout(tarotTimeout);
+    tarotTimeout = null;
+  }
+  
   els.tarotOverlay.classList.add('hidden');
   els.tarotCard.classList.remove('flipped');
+  
   if (state.pendingProphecy) {
-    speak(state.pendingProphecy);
+    const prophecyToSpeak = state.pendingProphecy;
     state.pendingProphecy = null;
+    await speakAsync(prophecyToSpeak);
+  }
+  
+  if (resolveSensingPromise) {
+    const resolve = resolveSensingPromise;
+    resolveSensingPromise = null;
+    resolve();
   }
 }
 
@@ -303,8 +545,8 @@ function startTikTokSimulation() {
   log("Iniciando simulador automático de audiencia TikTok Live...", "success");
 
   simulationInterval = setInterval(() => {
-    // Only simulate if not currently speaking or showing a card to prevent flooding
-    if (state.isSpeaking || !els.tarotOverlay.classList.contains('hidden')) return;
+    // Prevent flooding simulation when queue is already stacked up to 6 items
+    if (commentQueue.length > 5) return;
 
     const randomUser = commenters[Math.floor(Math.random() * commenters.length)];
     const randomText = questions[Math.floor(Math.random() * questions.length)];
@@ -313,7 +555,7 @@ function startTikTokSimulation() {
     const newCommentNode = document.createElement('div');
     newCommentNode.innerHTML = `<strong>@${randomUser}:</strong> <span>${randomText}</span>`;
     els.tiktokContainer.appendChild(newCommentNode);
-  }, 10000); // Check every 10 seconds
+  }, 12000); // Check every 12 seconds
 }
 
 function stopTikTokSimulation() {
@@ -396,8 +638,7 @@ function initTikTokScraperObserver() {
   });
   
   state.isConnected = true;
-  els.dot.classList.add('active');
-  els.statusText.textContent = `Escuchando Live (@${state.username})`;
+  updateConnectionState('listening');
   log(`Observer de chat activado. Escuchando comentarios en directo.`, 'success');
 }
 
@@ -409,6 +650,9 @@ function init() {
   els.inputPrompt.value = state.systemPrompt;
   els.inputPitch.value = state.voicePitch;
   els.inputRate.value = state.voiceRate;
+  if (els.checkboxSimulation) {
+    els.checkboxSimulation.checked = state.isSimulationEnabled;
+  }
   
   if (state.apiKey) {
     log('API Key de Gemini cargada correctamente.', 'success');
@@ -445,6 +689,9 @@ function init() {
     state.voiceName = els.selectVoice.value;
     state.voicePitch = parseFloat(els.inputPitch.value);
     state.voiceRate = parseFloat(els.inputRate.value);
+    if (els.checkboxSimulation) {
+      state.isSimulationEnabled = els.checkboxSimulation.checked;
+    }
     
     localStorage.setItem('co_api_key', state.apiKey);
     localStorage.setItem('co_username', state.username);
@@ -452,12 +699,20 @@ function init() {
     localStorage.setItem('co_voice_name', state.voiceName);
     localStorage.setItem('co_voice_pitch', state.voicePitch);
     localStorage.setItem('co_voice_rate', state.voiceRate);
+    localStorage.setItem('co_simulation_enabled', state.isSimulationEnabled);
     
     log('Configuración de usuario actualizada.', 'success');
     els.settingsModal.classList.remove('open');
     
     if (state.username) {
-      els.statusText.textContent = `Escuchando Live (@${state.username})`;
+      updateConnectionState('listening');
+    }
+
+    // Toggle simulation based on saved state
+    if (state.isSimulationEnabled) {
+      startTikTokSimulation();
+    } else {
+      stopTikTokSimulation();
     }
   });
   
@@ -497,7 +752,7 @@ function init() {
       els.orb.classList.remove('speaking');
       log('Audio interrumpido por el usuario.', 'info');
     } else {
-      speak("Saludos, caminante del live de TikTok. Soy el Cyber Oráculo. Deja que el algoritmo místico revele tu destino cuántico.");
+      speakAsync("Saludos, caminante del live de TikTok. Soy el Cyber Oráculo. Deja que el algoritmo místico revele tu destino cuántico.");
     }
   });
   
@@ -522,7 +777,11 @@ function init() {
 
   // Start the observer and the live chat simulator
   initTikTokScraperObserver();
-  startTikTokSimulation();
+  if (state.isSimulationEnabled) {
+    startTikTokSimulation();
+  } else {
+    log("Simulador desactivado por configuración de usuario.", "info");
+  }
 }
 
 // Start everything when DOM is loaded

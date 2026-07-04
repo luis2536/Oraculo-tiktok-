@@ -42,16 +42,51 @@
 
     <!-- Main dynamic arena -->
     <main>
-      <!-- Central holographic mystical visualizer -->
+      <!-- Title banner precisely matching user's reference design -->
+      <div class="header-banner">
+        <div class="banner-title">✦ ESCRIBE TU NOMBRE + PREGUNTA ✦</div>
+        <div class="banner-subtitle">Lecturas sagradas en vivo por orden de llegada</div>
+      </div>
+
+      <!-- Central holographic mystical visualizer containing cyber-mystical SVG spirit/deity -->
       <div class="visualizer-container">
-        <div class="orb" id="oracle-orb"></div>
+        <div class="holo-rotating-outer"></div>
+        <div class="holo-rotating-mid"></div>
+        <div class="orb" id="oracle-orb">
+          <!-- Custom SVG Cyber-Spirit Avatar -->
+          <svg class="cyber-avatar" viewBox="0 0 100 100">
+            <!-- Outer grid pattern inside orb -->
+            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(0, 240, 255, 0.15)" stroke-width="0.75"/>
+            <path d="M 10,50 L 90,50 M 50,10 L 50,90" stroke="rgba(0, 240, 255, 0.08)" stroke-width="0.5"/>
+            <!-- Pulsing quantum core -->
+            <circle cx="50" cy="50" r="18" fill="url(#coreGradient)" class="pulse-core"/>
+            <!-- Glowing decorative neon arcs -->
+            <path d="M 28,32 A 26,26 0 0,1 72,32" fill="none" stroke="#00f0ff" stroke-width="2.5" stroke-linecap="round" class="arc-top"/>
+            <path d="M 28,68 A 26,26 0 0,0 72,68" fill="none" stroke="#bd00ff" stroke-width="2.5" stroke-linecap="round" class="arc-bottom"/>
+            <!-- Holographic cyber cat-ears/demon horns -->
+            <polygon points="26,22 38,30 24,34" fill="#00f0ff" opacity="0.85"/>
+            <polygon points="74,22 62,30 76,34" fill="#bd00ff" opacity="0.85"/>
+            <!-- Celestial cyber glowing eyes -->
+            <ellipse cx="41" cy="46" rx="3.5" ry="2" fill="#39ff14" class="cyber-eye"/>
+            <ellipse cx="59" cy="46" rx="3.5" ry="2" fill="#39ff14" class="cyber-eye"/>
+            <path d="M 45,55 Q 50,59 55,55" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+            <!-- Glow definition gradients -->
+            <defs>
+              <radialGradient id="coreGradient" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#bd00ff" stop-opacity="0.95"/>
+                <stop offset="65%" stop-color="#00f0ff" stop-opacity="0.45"/>
+                <stop offset="100%" stop-color="#0a0a14" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+          </svg>
+        </div>
       </div>
 
       <!-- Oracle Speech response panel -->
       <div class="response-card">
         <div class="response-title">Sintonización Espiritual</div>
         <div class="response-text" id="response-text">
-          Toca la esfera para sintonizar tu alma con el algoritmo del destino...
+          Toca el Oráculo para sintonizar tu alma con el algoritmo del destino...
         </div>
       </div>
 
@@ -61,6 +96,31 @@
         <button id="btn-manual-send" title="Enviar consulta mística">
           <i class="fa-solid fa-paper-plane"></i>
         </button>
+      </div>
+
+      <!-- Split panels precisely matching reference screenshot -->
+      <div class="split-pane">
+        <!-- TURNOS / COLA PANEL (Left Column) -->
+        <div class="pane-column">
+          <div class="pane-header">
+            <span><i class="fa-solid fa-wand-magic-sparkles"></i> TURNOS</span>
+            <span class="badge" id="queue-count">0</span>
+          </div>
+          <div class="pane-list" id="queue-list">
+            <div class="empty-list-placeholder">Cola vacía<br><small>Esperando preguntas...</small></div>
+          </div>
+        </div>
+
+        <!-- CHAT EN VIVO PANEL (Right Column) -->
+        <div class="pane-column">
+          <div class="pane-header">
+            <span><i class="fa-brands fa-tiktok"></i> CHAT EN VIVO</span>
+            <span class="pulse-icon">●</span>
+          </div>
+          <div class="pane-list" id="chat-live-list">
+            <div class="empty-list-placeholder">Esperando comentarios desde TikTok Live...</div>
+          </div>
+        </div>
       </div>
 
       <!-- Console logs stream representing real-time pipeline telemetry -->
@@ -96,6 +156,11 @@
         <div class="form-group">
           <label for="input-username">Usuario TikTok Live</label>
           <input type="text" id="input-username" placeholder="cyber_oraculo_live">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+          <input type="checkbox" id="checkbox-simulation" checked style="width: 18px; height: 18px; accent-color: #00f0ff; cursor: pointer;">
+          <label for="checkbox-simulation" style="cursor: pointer; font-size: 0.85rem; margin: 0; color: #fff;">Activar Simulador de Audiencia</label>
         </div>
 
         <div class="form-group advanced-option hidden">

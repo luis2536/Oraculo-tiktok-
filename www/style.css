@@ -167,17 +167,36 @@ header {
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background-color: var(--danger);
-  box-shadow: 0 0 8px var(--danger);
+  transition: all 0.4s ease;
 }
 
-.dot.active {
-  background-color: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+/* Connection States precisely mapping instructions:
+   Red = Disconnected (Rojo)
+   Yellow/Orange = Listening/Active Observer (Amarillo/Anaranjado)
+   Green = Connected to Gemini API & Processing (Verde) */
+.dot.disconnected {
+  background-color: var(--danger);
+  box-shadow: 0 0 12px var(--danger);
+}
+
+.dot.listening {
+  background-color: #ffd700;
+  box-shadow: 0 0 12px #ffd700;
   animation: blinkDot 1.5s infinite alternate;
+}
+
+.dot.connected {
+  background-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent);
+  animation: pulseGreen 1s infinite alternate;
+}
+
+@keyframes pulseGreen {
+  0% { transform: scale(0.9); box-shadow: 0 0 8px var(--accent); }
+  100% { transform: scale(1.2); box-shadow: 0 0 20px var(--accent); }
 }
 
 @keyframes blinkDot {
@@ -194,7 +213,7 @@ main {
   overflow-y: auto;
   position: relative;
   z-index: 5;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* Cyber Orb visualizer in center */
@@ -203,34 +222,39 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: 230px;
   position: relative;
-  margin-top: 10px;
+  margin-top: 5px;
 }
 
 .orb {
-  width: 110px;
-  height: 110px;
+  width: 124px;
+  height: 124px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #00f0ff 0%, #bd00ff 70%, #050508 100%);
-  box-shadow: 0 0 35px rgba(0, 240, 255, 0.3), 
-              0 0 60px rgba(189, 0, 255, 0.2), 
-              inset 0 0 20px rgba(255, 255, 255, 0.4);
+  background: radial-gradient(circle at 50% 50%, rgba(13, 13, 23, 0.85) 0%, rgba(5, 5, 8, 0.98) 80%);
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.45), 
+              0 0 70px rgba(189, 0, 255, 0.35), 
+              inset 0 0 25px rgba(0, 240, 255, 0.3);
   position: relative;
   cursor: pointer;
   z-index: 5;
   animation: floatOrb 6s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .orb::after {
   content: '';
   position: absolute;
-  top: -5px; left: -5px; right: -5px; bottom: -5px;
+  top: -6px; left: -6px; right: -6px; bottom: -6px;
   border-radius: 50%;
   background: linear-gradient(45deg, var(--primary), var(--secondary));
   z-index: -1;
-  opacity: 0.4;
-  filter: blur(8px);
+  opacity: 0.5;
+  filter: blur(10px);
 }
 
 .orb.speaking {
@@ -784,5 +808,258 @@ input:focus, textarea:focus, select:focus {
   .console-panel {
     max-height: 130px;
   }
+}
+
+/* --- CYBER-SPIRIT & HIGH-FIDELITY LAYOUT UPGRADES --- */
+
+.holo-rotating-outer {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border: 1.5px dashed rgba(0, 240, 255, 0.2);
+  border-radius: 50%;
+  animation: rotateCW 22s linear infinite;
+  pointer-events: none;
+}
+
+.holo-rotating-mid {
+  position: absolute;
+  width: 175px;
+  height: 175px;
+  border: 1px double rgba(189, 0, 255, 0.2);
+  border-radius: 50%;
+  animation: rotateCCW 16s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotateCW {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateCCW {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+.cyber-avatar {
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+}
+
+.pulse-core {
+  animation: pulseCore 2s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+@keyframes pulseCore {
+  0% { transform: scale(0.85); opacity: 0.8; }
+  100% { transform: scale(1.12); opacity: 1; }
+}
+
+.cyber-eye {
+  animation: blinkEye 4s infinite;
+  transform-origin: center;
+}
+
+@keyframes blinkEye {
+  0%, 90%, 100% { transform: scaleY(1); }
+  93%, 97% { transform: scaleY(0.1); }
+}
+
+/* Header banner precisely matching Image 15 */
+.header-banner {
+  text-align: center;
+  background: rgba(13, 13, 23, 0.45);
+  border: 1px solid rgba(0, 240, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 5px;
+  box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.05);
+}
+
+.banner-title {
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: #fff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+.banner-subtitle {
+  font-size: 0.7rem;
+  color: #ffd700; /* Beautiful gold accent */
+  font-style: italic;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+  text-transform: uppercase;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+}
+
+/* Turnos Queue and Chat Live Split columns precisely matching Image 15 */
+.split-pane {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+  min-height: 180px;
+  max-height: 250px;
+}
+
+.pane-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 8, 16, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.pane-header {
+  background: rgba(13, 13, 23, 0.95);
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pane-header i {
+  color: var(--primary);
+}
+
+.pane-header .badge {
+  background: var(--secondary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-family: monospace;
+  padding: 2px 6px;
+  border-radius: 10px;
+  box-shadow: 0 0 5px var(--secondary);
+}
+
+.pane-header .pulse-icon {
+  color: var(--accent);
+  font-size: 0.65rem;
+  animation: blinkDot 1s infinite alternate;
+}
+
+.pane-list {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-list-placeholder {
+  margin: auto;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.empty-list-placeholder small {
+  opacity: 0.7;
+}
+
+/* Turnos Queue item design */
+.queue-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 240, 255, 0.06);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.queue-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.queue-username {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.queue-text {
+  color: #ddd;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.queue-status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.queue-status.waiting {
+  background: rgba(189, 0, 255, 0.15);
+  color: #e1bfff;
+  border: 0.5px solid rgba(189, 0, 255, 0.3);
+}
+
+.queue-status.processing {
+  background: rgba(57, 255, 20, 0.12);
+  color: var(--accent);
+  border: 0.5px solid rgba(57, 255, 20, 0.3);
+  animation: pulseBorder 1.5s infinite alternate;
+}
+
+/* Live Chat item design */
+.chat-item {
+  background: rgba(13, 13, 23, 0.4);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  border-left: 3px solid var(--secondary);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.chat-user {
+  font-weight: 700;
+  color: #e1bfff;
+  margin-right: 4px;
+}
+
+.chat-text {
+  color: #eee;
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-15px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseBorder {
+  from { border-color: rgba(57, 255, 20, 0.3); box-shadow: 0 0 2px rgba(57, 255, 20, 0.1); }
+  to { border-color: rgba(57, 255, 20, 0.8); box-shadow: 0 0 8px rgba(57, 255, 20, 0.4); }
 }
 
