@@ -863,6 +863,16 @@ input:focus, textarea:focus, select:focus {
   transform-origin: center;
 }
 
+.crystals {
+  animation: floatCrystals 3s ease-in-out infinite alternate;
+  transform-origin: center bottom;
+}
+
+@keyframes floatCrystals {
+  0% { transform: translateY(2px); }
+  100% { transform: translateY(-4px); }
+}
+
 @keyframes blinkEye {
   0%, 90%, 100% { transform: scaleY(1); }
   93%, 97% { transform: scaleY(0.1); }
@@ -1059,7 +1069,165 @@ input:focus, textarea:focus, select:focus {
 }
 
 @keyframes pulseBorder {
-  from { border-color: rgba(57, 255, 20, 0.3); box-shadow: 0 0 2px rgba(57, 255, 20, 0.1); }
-  to { border-color: rgba(57, 255, 20, 0.8); box-shadow: 0 0 8px rgba(57, 255, 20, 0.4); }
+  0% { border-color: rgba(57, 255, 20, 0.3); box-shadow: 0 0 2px rgba(57, 255, 20, 0.1); }
+  100% { border-color: rgba(57, 255, 20, 0.8); box-shadow: 0 0 8px rgba(57, 255, 20, 0.4); }
+}
+
+/* --- CYBER-ORACLE ADVANCED MODAL (IMAGE 1 REF) --- */
+.advanced-modal {
+  background: rgba(18, 15, 30, 0.98) !important;
+  border: 1px solid rgba(189, 0, 255, 0.3) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(189, 0, 255, 0.1) !important;
+  padding: 24px !important;
+}
+
+.modal-header-alt {
+  margin-bottom: 20px;
+}
+
+.modal-eyebrow {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.modal-title-alt {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.diagnostic-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 24px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #aaa;
+}
+
+.diagnostic-box p {
+  margin: 0 0 6px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.diagnostic-box p:last-child {
+  margin: 0;
+}
+
+.status-req {
+  color: var(--danger);
+  font-weight: bold;
+}
+
+.modal-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #bbb;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.form-group-alt {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.form-group-alt label {
+  display: block;
+  font-size: 0.7rem;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.form-group-alt input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.1rem;
+  font-family: inherit;
+  padding: 0;
+  outline: none;
+}
+
+.help-link {
+  font-size: 0.75rem;
+  color: #bbb;
+  margin-bottom: 8px;
+}
+
+.help-link .link-url {
+  color: var(--secondary);
+}
+
+.mini-console {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  min-height: 80px;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-secondary {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 12px;
+  border-radius: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-primary-alt {
+  flex: 1;
+  background: var(--secondary);
+  border: none;
+  color: #fff;
+  padding: 12px;
+  border-radius: 24px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(189, 0, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.btn-primary-alt:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(189, 0, 255, 0.6);
 }
 

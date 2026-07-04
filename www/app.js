@@ -317,11 +317,22 @@ async function askGemini(commenter, message) {
   };
   
   try {
-    const response = await fetch(endpoint, {
+    let response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
     });
+    
+    // Handle 429 Quota Exceeded with a retry
+    if (response.status === 429) {
+      log('Límite de peticiones alcanzado (Quota exceeded). Esperando 10 segundos antes de reintentar...', 'info');
+      await new Promise(r => setTimeout(r, 10000));
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+    }
     
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
@@ -428,9 +439,9 @@ async function processQueue() {
     commentQueue.shift();
     updateQueueUI();
     
-    // Safety delay to prevent Gemini quota exceed rate limit errors
+    // Safety delay to prevent Gemini quota exceed rate limit errors (15 requests per minute limit)
     updateConnectionState('listening');
-    await sleep(4000); // 4 seconds cool-down between comments
+    await sleep(6000); // 6 seconds cool-down between comments
   }
   
   state.isProcessingQueue = false;
@@ -642,16 +653,42 @@ function initTikTokScraperObserver() {
   log(`Observer de chat activado. Escuchando comentarios en directo.`, 'success');
 }
 
+// Override the log function to also append to the mini-console in the settings modal
+const originalLog = window.log || function(){};
+window.log = function(msg, type) {
+  originalLog(msg, type);
+  const miniConsole = document.getElementById('mini-console');
+  if (miniConsole) {
+    const entry = document.createElement('div');
+    entry.textContent = `[${new Date().toLocaleTimeString('es-MX', {hour12: false})}] ${msg}`;
+    if(type === 'error') entry.style.color = 'var(--danger)';
+    if(type === 'success') entry.style.color = 'var(--accent)';
+    miniConsole.appendChild(entry);
+    miniConsole.scrollTop = miniConsole.scrollHeight;
+  }
+};
+
 // Setup Event Listeners & Initialize
 function init() {
   // Load initial inputs
-  els.inputApiKey.value = state.apiKey;
-  els.inputUsername.value = state.username;
-  els.inputPrompt.value = state.systemPrompt;
-  els.inputPitch.value = state.voicePitch;
-  els.inputRate.value = state.voiceRate;
+  if (els.inputApiKey) els.inputApiKey.value = state.apiKey;
+  if (els.inputUsername) els.inputUsername.value = state.username;
+  if (els.inputPrompt) els.inputPrompt.value = state.systemPrompt;
+  if (els.inputPitch) els.inputPitch.value = state.voicePitch;
+  if (els.inputRate) els.inputRate.value = state.voiceRate;
   if (els.checkboxSimulation) {
     els.checkboxSimulation.checked = state.isSimulationEnabled;
+  }
+  
+  // Update diagnostic text
+  const diagUser = document.getElementById('diag-user');
+  const diagLinkUser = document.getElementById('diag-link-user');
+  const diagStatus = document.getElementById('diag-status');
+  if (diagUser) diagUser.textContent = state.username || 'username';
+  if (diagLinkUser) diagLinkUser.textContent = state.username || 'username';
+  if (diagStatus) {
+    diagStatus.textContent = state.username ? 'ONLINE' : 'ESPERANDO CONFIG';
+    diagStatus.style.color = state.username ? '#39ff14' : '#ffd700';
   }
   
   if (state.apiKey) {
@@ -661,15 +698,18 @@ function init() {
   }
   
   // Easter egg: double click settings modal title to show/hide hidden Gemini and system prompt settings
-  document.querySelector('.modal-title').addEventListener('click', (e) => {
-    // Standard click count tracker
-    e.target.clickCount = (e.target.clickCount || 0) + 1;
-    if (e.target.clickCount >= 5) {
-      document.querySelectorAll('.advanced-option').forEach(el => el.classList.toggle('hidden'));
-      log('Opciones avanzadas (API Key y System Prompt) reveladas.', 'success');
-      e.target.clickCount = 0;
-    }
-  });
+  const titleEl = document.querySelector('.modal-eyebrow') || document.querySelector('.modal-title');
+  if (titleEl) {
+    titleEl.addEventListener('click', (e) => {
+      // Standard click count tracker
+      e.target.clickCount = (e.target.clickCount || 0) + 1;
+      if (e.target.clickCount >= 5) {
+        document.querySelectorAll('.advanced-option').forEach(el => el.classList.toggle('hidden'));
+        log('Opciones avanzadas (API Key y System Prompt) reveladas.', 'success');
+        e.target.clickCount = 0;
+      }
+    });
+  }
 
   // Open Settings Modal
   els.settingsBtn.addEventListener('click', () => {
@@ -685,7 +725,13 @@ function init() {
   els.saveSettings.addEventListener('click', () => {
     state.apiKey = els.inputApiKey.value.trim();
     state.username = els.inputUsername.value.trim();
-    state.systemPrompt = els.inputPrompt.value.trim();
+    if(els.inputPrompt) state.systemPrompt = els.inputPrompt.value.trim();
+    
+    // Update diagnostic text
+    document.getElementById('diag-user').textContent = state.username || 'username';
+    document.getElementById('diag-link-user').textContent = state.username || 'username';
+    document.getElementById('diag-status').textContent = state.username ? 'ONLINE' : 'ESPERANDO CONFIG';
+    document.getElementById('diag-status').style.color = state.username ? '#39ff14' : '#ffd700';
     state.voiceName = els.selectVoice.value;
     state.voicePitch = parseFloat(els.inputPitch.value);
     state.voiceRate = parseFloat(els.inputRate.value);
