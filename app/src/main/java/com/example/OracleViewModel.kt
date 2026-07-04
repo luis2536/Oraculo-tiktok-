@@ -125,7 +125,7 @@ class OracleViewModel(application: Application) : AndroidViewModel(application),
             _connectionLogs.update { current ->
                 val newLogs = current.toMutableList()
                 newLogs.add(0, "[$timestamp] $message")
-                if (newLogs.size > 100) newLogs.removeLast()
+                if (newLogs.size > 100) newLogs.removeAt(newLogs.lastIndex)
                 newLogs
             }
             Log.d("OracleApp", message)

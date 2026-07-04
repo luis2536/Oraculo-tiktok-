@@ -1,0 +1,25 @@
+{
+  "name": "Cyber-Oráculo PWA",
+  "short_name": "Cyber-Oráculo",
+  "description": "Oráculo místico cyber-futurista integrado con TikTok Live y Gemini AI",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#050508",
+  "theme_color": "#0a0a14",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/nolan/512/oracle.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.icons8.com/nolan/192/oracle.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

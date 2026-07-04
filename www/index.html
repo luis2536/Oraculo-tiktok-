@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Cyber-Oráculo PWA</title>
+  
+  <!-- PWA Metadata & iOS Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cyber-Oráculo">
+  <meta name="theme-color" content="#0a0a14">
+  
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./style.css">
+  
+  <!-- Preload fonts or vector icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Animated particle/grid backgrounds -->
+    <div class="bg-grid"></div>
+    <div class="holo-rings">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+    </div>
+
+    <!-- Header bar -->
+    <header>
+      <div class="brand">
+        <div class="logo-icon"></div>
+        <span class="brand-title">Cyber-Oráculo</span>
+      </div>
+      <div class="status-indicator">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text">Cargando oráculo...</span>
+      </div>
+    </header>
+
+    <!-- Main dynamic arena -->
+    <main>
+      <!-- Central holographic mystical visualizer -->
+      <div class="visualizer-container">
+        <div class="orb" id="oracle-orb"></div>
+      </div>
+
+      <!-- Oracle Speech response panel -->
+      <div class="response-card">
+        <div class="response-title">Sintonización Espiritual</div>
+        <div class="response-text" id="response-text">
+          Toca la esfera para sintonizar tu alma con el algoritmo del destino...
+        </div>
+      </div>
+
+      <!-- Manual test trigger console -->
+      <div class="interaction-bar">
+        <input type="text" id="input-manual-comment" placeholder="Simular chat (Ej. Luis: ¿Pasaré mi examen?)" aria-label="Escribe un comentario simulado">
+        <button id="btn-manual-send" title="Enviar consulta mística">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+
+      <!-- Console logs stream representing real-time pipeline telemetry -->
+      <div class="console-panel">
+        <div class="console-header">
+          <span>MONITOR DE PIPELINE</span>
+          <span>ONLINE</span>
+        </div>
+        <div class="console-logs" id="console-logs">
+          <div class="log-entry success">[Cyber-Oráculo v1.0.0] listo y armado.</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Settings FAB action -->
+    <button class="fab-settings" id="settings-btn" title="Configurar parámetros">
+      <i class="fa-solid fa-sliders"></i>
+    </button>
+
+    <!-- Settings glassmorphic dialog -->
+    <div class="modal-overlay" id="settings-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="modal-title">Ajustes del Oráculo</span>
+          <button class="close-btn" id="close-settings">&times;</button>
+        </div>
+
+        <div class="form-group">
+          <label for="input-api-key">Gemini API Key</label>
+          <input type="password" id="input-api-key" placeholder="AIzaSy...">
+        </div>
+
+        <div class="form-group">
+          <label for="input-username">Usuario TikTok Live</label>
+          <input type="text" id="input-username" placeholder="cyber_oraculo_live">
+        </div>
+
+        <div class="form-group">
+          <label for="input-prompt">Instrucción del Sistema (Personalidad)</label>
+          <textarea id="input-prompt" rows="4" placeholder="Personalidad mística..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="select-voice">Voz TTS (Síntesis de Voz)</label>
+          <select id="select-voice">
+            <option value="">Por defecto del dispositivo</option>
+          </select>
+        </div>
+
+        <div class="row-inputs">
+          <div class="form-group">
+            <label for="input-pitch">Tono (0.5 - 2.0)</label>
+            <input type="number" id="input-pitch" min="0.5" max="2.0" step="0.05" value="0.85">
+          </div>
+          <div class="form-group">
+            <label for="input-rate">Velocidad (0.5 - 2.0)</label>
+            <input type="number" id="input-rate" min="0.5" max="2.0" step="0.05" value="0.9">
+          </div>
+        </div>
+
+        <button class="btn-primary" id="save-settings">Guardar Cambios</button>
+      </div>
+    </div>
+
+    <!-- Target Container where the scraper's MutationObserver binds.
+         TikTok live comment lines can be appended here programmatically or manually. -->
+    <div id="tiktok-live-container"></div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
