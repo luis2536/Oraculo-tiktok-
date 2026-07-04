@@ -1,5 +1,5 @@
 {
-  "name": "Oráculo Interactivo",
+  "name": "Cyber-Oráculo",
   "description": "App para interactuar con el Oráculo en vivo de TikTok",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
