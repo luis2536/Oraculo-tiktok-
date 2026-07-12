@@ -653,6 +653,63 @@ function initTikTokScraperObserver() {
   log(`Observer de chat activado. Escuchando comentarios en directo.`, 'success');
 }
 
+let satelliteEventSource = null;
+
+function updateBridgeTextArea() {
+  const cleanUser = (state.username || 'username').replace(/[\s:@]/g, '').trim();
+  const code = `(function(){const targetTopic='cyber_oraculo_${cleanUser}';console.log('%c✦ TIKTOK BRIDGE ACTIVE ✦','color:#bd00ff;font-weight:bold;font-size:16px;');const processed=new Set();setInterval(()=>{const nodes=document.querySelectorAll('[data-e2e="chat-message"],div[class*="webcast-chatroom___item"],div[class*="ChatroomItem"]');nodes.forEach(node=>{let uNode=node.querySelector('[data-e2e="comment-username"],span[class*="UserNickname"],span[class*="nickname"]');let tNode=node.querySelector('[data-e2e="comment-text"],span[class*="CommentText"],span[class*="text"]');let usr=uNode?uNode.innerText.replace(/[\\s:@]/g,''):'';let txt=tNode?tNode.innerText.trim():'';if(!usr){const parts=node.textContent.split(':');if(parts.length>=2){usr=parts[0].replace(/[\\s:@]/g,'').trim();txt=parts.slice(1).join(':').trim();}}if(usr&&txt&&txt.length>1){const key=usr+':'+txt;if(!processed.has(key)){processed.add(key);console.log('%c[Bridge] %c@'+usr+': '+txt,'color:#00f0ff','color:#fff');fetch('https://ntfy.sh/'+targetTopic,{method:'POST',body:JSON.stringify({user:usr,text:txt})}).catch(e=>console.error(e));}}});},3000);})();`;
+  const area = document.getElementById('bridge-code-area');
+  if (area) area.value = code;
+}
+
+function connectSatelliteBridge() {
+  if (satelliteEventSource) {
+    satelliteEventSource.close();
+    satelliteEventSource = null;
+  }
+  
+  if (!state.username || state.username === 'username' || state.username === '@username') {
+    return;
+  }
+  
+  const cleanUser = state.username.replace(/[\s:@]/g, '').trim();
+  const sseUrl = `https://ntfy.sh/cyber_oraculo_${cleanUser}/sse`;
+  
+  log(`Estableciendo enlace de Conexión Satelital (ntfy)...`, 'info');
+  
+  try {
+    satelliteEventSource = new EventSource(sseUrl);
+    
+    satelliteEventSource.onopen = () => {
+      log(`¡Enlace Satelital activado! Sintonizando canal cósmico: ${cleanUser}`, 'success');
+      const diagStatus = document.getElementById('diag-status');
+      if (diagStatus) {
+        diagStatus.textContent = 'SATÉLITE CONECTADO';
+        diagStatus.style.color = '#39ff14';
+      }
+    };
+    
+    satelliteEventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const payload = JSON.parse(data.message);
+        if (payload.user && payload.text) {
+          log(`[Satelital] @${payload.user}: ${payload.text}`, 'success');
+          processComment(payload.user, payload.text);
+        }
+      } catch (err) {
+        // SSE keep-alive or other noise
+      }
+    };
+    
+    satelliteEventSource.onerror = (err) => {
+      console.warn('Satellite SSE link notice:', err);
+    };
+  } catch (e) {
+    log('Fallo al inicializar canal de escucha satelital.', 'error');
+  }
+}
+
 // Override the log function to also append to the mini-console in the settings modal
 const originalLog = window.log || function(){};
 window.log = function(msg, type) {
@@ -695,6 +752,47 @@ function init() {
     log('API Key de Gemini cargada correctamente.', 'success');
   } else {
     log('Oráculo sintonizado en modo fallback de servidor.', 'success');
+  }
+
+  // Generate dynamic bridge injection code and connect satellite EventSource link
+  updateBridgeTextArea();
+  connectSatelliteBridge();
+
+  // Dynamic typing update for the satellite bridge
+  if (els.inputUsername) {
+    els.inputUsername.addEventListener('input', (e) => {
+      state.username = e.target.value.trim();
+      const dUser = document.getElementById('diag-user');
+      const dLink = document.getElementById('diag-link-user');
+      if (dUser) dUser.textContent = state.username || 'username';
+      if (dLink) dLink.textContent = state.username || 'username';
+      updateBridgeTextArea();
+    });
+  }
+
+  // Copy satellite code button event
+  const copyBtn = document.getElementById('btn-copy-bridge');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const area = document.getElementById('bridge-code-area');
+      if (area) {
+        area.select();
+        navigator.clipboard.writeText(area.value)
+          .then(() => {
+            const origHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> ¡Código Copiado!';
+            copyBtn.style.background = 'linear-gradient(135deg, #39ff14, #12b300)';
+            setTimeout(() => {
+              copyBtn.innerHTML = origHTML;
+              copyBtn.style.background = '';
+            }, 3000);
+            log('Código del puente satelital copiado al portapapeles.', 'success');
+          })
+          .catch(err => {
+            log('Error al copiar el código del puente.', 'error');
+          });
+      }
+    });
   }
   
   // Easter egg: double click settings modal title to show/hide hidden Gemini and system prompt settings
@@ -750,6 +848,10 @@ function init() {
     log('Configuración de usuario actualizada.', 'success');
     els.settingsModal.classList.remove('open');
     
+    // Update satellite bridge and code template
+    updateBridgeTextArea();
+    connectSatelliteBridge();
+
     if (state.username) {
       updateConnectionState('listening');
     }

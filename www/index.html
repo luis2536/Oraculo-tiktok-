@@ -206,6 +206,22 @@
           <div>[Motor Nativo (TikTok Scraper) listo.]</div>
         </div>
 
+        <div class="modal-section-title">🔮 PUENTE SATELITAL (CORS BYPASS)</div>
+        <div class="bridge-box" style="background: rgba(189, 0, 255, 0.05); padding: 12px; border: 1px dashed rgba(189, 0, 255, 0.3); border-radius: 8px; margin-bottom: 15px;">
+          <p class="help-text" style="color: var(--text-primary); font-size: 0.8rem; line-height: 1.25rem; margin-bottom: 8px;">
+            <strong>Conéctate al Live real de TikTok sin errores ni extensiones:</strong>
+          </p>
+          <ol style="color: var(--text-muted); font-size: 0.75rem; margin-left: 15px; padding-left: 0; line-height: 1.2rem; margin-bottom: 8px;">
+            <li>Entra a tu Live en Chrome de PC o móvil.</li>
+            <li>Abre la consola de desarrollador (F12 o Inspeccionar).</li>
+            <li>Copia el código de abajo, pégalo en la consola y presiona Enter. ¡Eso es todo!</li>
+          </ol>
+          <button class="btn-primary-alt" id="btn-copy-bridge" style="width: 100%; font-size: 0.75rem; padding: 8px; margin: 5px 0; background: linear-gradient(135deg, var(--secondary), #7b00ff); border: none;">
+            <i class="fa-regular fa-copy"></i> Copiar Código Inyectable
+          </button>
+          <textarea id="bridge-code-area" readonly style="width: 100%; height: 50px; background: rgba(0,0,0,0.5); color: #8fa0b5; border: 1px solid rgba(0,240,255,0.1); border-radius: 4px; font-family: monospace; font-size: 0.65rem; padding: 6px; resize: none; margin-top: 5px; outline: none;" onclick="this.select();"></textarea>
+        </div>
+
         <!-- Hidden advanced options -->
         <div class="form-group advanced-option hidden" style="margin-top:15px;">
           <label for="input-api-key">Gemini API Key</label>
