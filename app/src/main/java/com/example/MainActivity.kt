@@ -50,11 +50,17 @@ import com.example.ui.components.AudioWaveform
 import com.example.ui.components.MysticOracleVisualizer
 import com.example.ui.components.FlyingTarotCardDisplay
 import androidx.compose.ui.draw.blur
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import androidx.compose.ui.viewinterop.AndroidView
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        MobileAds.initialize(this) {}
         val prefs = PreferencesManager(this)
         val geminiService = GeminiService()
         val factory = viewModelFactory {
@@ -108,7 +114,10 @@ fun OracleApp(viewModel: OracleViewModel) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            BannerAdView()
+        }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Animated Particle Background
@@ -544,3 +553,18 @@ fun OracleApp(viewModel: OracleViewModel) {
     }
 }
 }
+
+@Composable
+fun BannerAdView(modifier: Modifier = Modifier) {
+    AndroidView(
+        modifier = modifier.fillMaxWidth(),
+        factory = { context ->
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                adUnitId = "ca-app-pub-6062184784957344/8377169109"
+                loadAd(AdRequest.Builder().build())
+            }
+        }
+    )
+}
+

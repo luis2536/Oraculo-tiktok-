@@ -108,6 +108,7 @@ dependencies {
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
   // implementation(libs.play.services.location)
+  implementation(libs.play.services.ads)
   implementation(libs.retrofit)
   implementation(libs.retrofit.converter.serialization)
   implementation(libs.kotlinx.serialization.json)
